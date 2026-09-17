@@ -271,3 +271,50 @@ def test_repeated_identical_requests_produce_identical_plans(client) -> None:
     assert [[p["id"] for p in c["products"]] for c in first["candidates"]] == [
         [p["id"] for p in c["products"]] for c in second["candidates"]
     ]
+
+
+# --- Findings from the final engineering review --------------------------------
+
+
+def test_an_empty_request_cannot_produce_an_empty_configuration(client) -> None:
+    """Regression: requesting nothing returned "0 products, Rs 0" as a valid plan."""
+    response = client.post("/api/v1/plan", json={**BASE, "required_categories": []})
+
+    assert response.status_code == 422
+
+
+def test_a_single_fixture_request_is_still_valid(client) -> None:
+    body = plan(client, required_categories=["toilet"])
+
+    assert body["status"] == "ok"
+    assert len(body["candidates"][0]["products"]) == 1
+
+
+def test_an_unusually_large_room_does_not_stall_the_planner(client) -> None:
+    """Regression: a 60x60 ft room took 331 seconds before the solver was bounded."""
+    import time
+
+    started = time.monotonic()
+    body = plan(
+        client,
+        room_width_ft=60,
+        room_length_ft=60,
+        budget=900000,
+        electrical_available=True,
+    )
+    elapsed = time.monotonic() - started
+
+    assert body["status"] == "ok"
+    assert elapsed < 30, f"planning a large room took {elapsed:.1f}s"
+
+
+def test_duplicate_requested_categories_are_handled(client) -> None:
+    body = plan(client, required_categories=["vanity", "vanity", "toilet"])
+
+    assert body["status"] == "ok"
+
+
+def test_a_zero_budget_is_refused_rather_than_divided_by(client) -> None:
+    body = plan(client, budget=0)
+
+    assert body["status"] == "no_fully_compliant_configuration"

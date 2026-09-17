@@ -35,7 +35,15 @@ class BathroomBrief(BaseModel):
     budget: float | None = Field(default=None, ge=0)
     currency: str = "INR"
 
-    required_categories: list[str] = Field(default_factory=lambda: list(DEFAULT_REQUIRED_CATEGORIES))
+    required_categories: list[str] = Field(
+        default_factory=lambda: list(DEFAULT_REQUIRED_CATEGORIES),
+        min_length=1,
+        description=(
+            "At least one fixture must be requested. An empty list would otherwise "
+            "produce a technically valid empty configuration — no products, zero cost — "
+            "which is not an answer to anything."
+        ),
+    )
     preferred_styles: list[str] = Field(default_factory=list)
 
     # Facts the user may or may not know. Unknown stays unknown — these are

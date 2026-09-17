@@ -120,6 +120,21 @@ def _door_swing_rect(door: DoorSpec, room_w: float, room_l: float) -> Rect | Non
     return Rect(x_in=max(0.0, room_w - depth), y_in=door.offset_in, width_in=depth, depth_in=door.width_in)
 
 
+MAX_SCAN_POSITIONS = 160
+"""Positions tried along a single wall.
+
+A 1-inch step is the right resolution for a real bathroom. For an unusually
+large room it becomes thousands of positions per wall with no useful gain in
+precision -- a 60ft wall does not need 720 candidate offsets to find a legal
+spot. The step therefore widens with the wall, keeping cost bounded while
+staying at 1 inch for any room a person would actually be planning.
+"""
+
+
+def _scan_step(run: float) -> float:
+    return max(OFFSET_STEP_IN, run / MAX_SCAN_POSITIONS)
+
+
 def _find_position(
     request: FixtureRequest,
     room_w: float,
@@ -144,12 +159,13 @@ def _find_position(
             continue
         offset = 0.0
         limit = run - span
+        step = _scan_step(run)
         while offset <= limit + 1e-9:
             footprint, clearance = _rects_for(
                 wall, offset + side_pad, width, depth, rule.front_in, room_w, room_l
             )
             if not footprint.within(room_w, room_l) or not clearance.within(room_w, room_l):
-                offset += OFFSET_STEP_IN
+                offset += step
                 continue
 
             # Footprints never overlap anything. Clearance may overlap another
@@ -170,8 +186,12 @@ def _find_position(
                     clearance=clearance,
                     clearance_source=rule.source,
                 )
-            offset += OFFSET_STEP_IN
+            offset += step
     return None
+
+
+MAX_GRID_CELLS = 3600
+"""Upper bound on flood-fill cells, so a large room cannot stall the solver."""
 
 
 def _check_circulation(layout: RoomLayout) -> tuple[bool, list[str]]:
@@ -179,37 +199,57 @@ def _check_circulation(layout: RoomLayout) -> tuple[bool, list[str]]:
 
     A layout can satisfy every individual clearance rule and still be unusable
     because a fixture ends up behind another one. This catches that.
+
+    The grid is deliberately coarse and bounded: it answers "can a person get
+    there", not "what is the exact free area". Cell size grows with the room so
+    the cost stays flat, and the arithmetic runs on plain floats rather than
+    constructing a model object per cell -- at a few thousand cells per solve,
+    and hundreds of solves per plan, allocation is the whole cost.
     """
     notes: list[str] = []
     if not layout.placed:
         return True, notes
 
-    cols = max(1, int(layout.room_width_in // GRID_CELL_IN))
-    rows = max(1, int(layout.room_length_in // GRID_CELL_IN))
-    footprints = [item.footprint for item in layout.placed]
+    cell = GRID_CELL_IN
+    while (layout.room_width_in / cell) * (layout.room_length_in / cell) > MAX_GRID_CELLS:
+        cell *= 2
 
-    def cell_rect(cx: int, cy: int) -> Rect:
-        return Rect(
-            x_in=cx * GRID_CELL_IN,
-            y_in=cy * GRID_CELL_IN,
-            width_in=GRID_CELL_IN,
-            depth_in=GRID_CELL_IN,
-        )
+    cols = max(1, int(layout.room_width_in // cell))
+    rows = max(1, int(layout.room_length_in // cell))
 
-    free = [
-        [not any(cell_rect(cx, cy).overlaps(f) for f in footprints) for cy in range(rows)]
-        for cx in range(cols)
+    # Plain tuples, not Rect models: this is the hot loop.
+    footprints = [
+        (item.footprint.x_in, item.footprint.y_in, item.footprint.x2, item.footprint.y2)
+        for item in layout.placed
+    ]
+    clearances = [
+        (item.clearance.x_in, item.clearance.y_in, item.clearance.x2, item.clearance.y2)
+        for item in layout.placed
     ]
 
-    # Entry point: the doorway if known, otherwise any free cell on the south wall.
+    def overlaps(ax1, ay1, ax2, ay2, box) -> bool:
+        bx1, by1, bx2, by2 = box
+        return ax1 < bx2 - 1e-6 and bx1 < ax2 - 1e-6 and ay1 < by2 - 1e-6 and by1 < ay2 - 1e-6
+
+    free = [[True] * rows for _ in range(cols)]
+    for cx in range(cols):
+        x1 = cx * cell
+        x2 = x1 + cell
+        for cy in range(rows):
+            y1 = cy * cell
+            y2 = y1 + cell
+            if any(overlaps(x1, y1, x2, y2, box) for box in footprints):
+                free[cx][cy] = False
+
+    # Entry point: the doorway if known, otherwise any free cell.
     start: tuple[int, int] | None = None
     if layout.door is not None:
         door = layout.door
         if door.wall in ("south", "north"):
-            cx = min(cols - 1, int((door.offset_in + door.width_in / 2) // GRID_CELL_IN))
+            cx = min(cols - 1, int((door.offset_in + door.width_in / 2) // cell))
             cy = 0 if door.wall == "south" else rows - 1
         else:
-            cy = min(rows - 1, int((door.offset_in + door.width_in / 2) // GRID_CELL_IN))
+            cy = min(rows - 1, int((door.offset_in + door.width_in / 2) // cell))
             cx = 0 if door.wall == "west" else cols - 1
         if free[cx][cy]:
             start = (cx, cy)
@@ -224,31 +264,40 @@ def _check_circulation(layout: RoomLayout) -> tuple[bool, list[str]]:
     seen = [[False] * rows for _ in range(cols)]
     stack = [start]
     seen[start[0]][start[1]] = True
+    reachable_cells = 1
     while stack:
         cx, cy = stack.pop()
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            nx, ny = cx + dx, cy + dy
+        for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
             if 0 <= nx < cols and 0 <= ny < rows and free[nx][ny] and not seen[nx][ny]:
                 seen[nx][ny] = True
+                reachable_cells += 1
                 stack.append((nx, ny))
 
+    # One pass over the grid, accumulating reachability per fixture, rather than
+    # a full sweep per fixture.
+    reached = [False] * len(layout.placed)
+    for cx in range(cols):
+        x1 = cx * cell
+        x2 = x1 + cell
+        for cy in range(rows):
+            if not seen[cx][cy]:
+                continue
+            y1 = cy * cell
+            y2 = y1 + cell
+            for index, box in enumerate(clearances):
+                if not reached[index] and overlaps(x1, y1, x2, y2, box):
+                    reached[index] = True
+
     ok = True
-    for item in layout.placed:
-        reachable = any(
-            seen[cx][cy]
-            for cx in range(cols)
-            for cy in range(rows)
-            if free[cx][cy] and cell_rect(cx, cy).overlaps(item.clearance)
-        )
-        if not reachable:
+    for index, item in enumerate(layout.placed):
+        if not reached[index]:
             ok = False
             notes.append(
                 f"{item.product_name} is enclosed by other fixtures — its clear space "
                 "cannot be reached from the doorway."
             )
 
-    reachable_cells = sum(1 for cx in range(cols) for cy in range(rows) if seen[cx][cy])
-    min_cells = (CIRCULATION_WIDTH_IN / GRID_CELL_IN) ** 2
+    min_cells = (CIRCULATION_WIDTH_IN / cell) ** 2
     if reachable_cells < min_cells:
         ok = False
         notes.append(
