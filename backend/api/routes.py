@@ -16,6 +16,8 @@ from .schemas import (
     BathroomBrief,
     CatalogResponse,
     HealthResponse,
+    ModifyRequest,
+    ModifyResponse,
     PlanResponse,
     ResolveRequest,
 )
@@ -91,6 +93,25 @@ def create_planning_router() -> APIRouter:
         brief = _apply_relaxation(existing.brief, request)
         result = create_plan(brief, project_id)
         return store.save(result)
+
+    @router.post("/plan/{project_id}/modify", response_model=ModifyResponse)
+    async def modify(project_id: str, request: ModifyRequest) -> ModifyResponse:
+        """Change a plan in plain language.
+
+        The message is translated into a structured request, applied
+        deterministically, and the plan is recomputed by the same engines. The
+        language model never decides the outcome, so an impossible request comes
+        back as a conflict with options rather than an invented success.
+        """
+        existing = store.get(project_id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail="Unknown project id")
+
+        from backend.llm.agent import modify_plan
+
+        result = await modify_plan(request.message, existing)
+        store.save(result.plan)
+        return result
 
     return router
 
