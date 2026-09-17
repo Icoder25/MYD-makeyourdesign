@@ -22,3 +22,7 @@ Thumbs.db
 
 # Generated files
 *.log
+
+# Frontend build output
+frontend/dist/
+frontend/node_modules/
