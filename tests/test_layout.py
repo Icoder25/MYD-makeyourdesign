@@ -186,3 +186,51 @@ def test_large_room_accommodates_a_full_premium_suite() -> None:
 
     assert layout.solved is True
     assert len(layout.placed) == 4
+
+
+def test_cached_layout_never_leaks_slot_placeholders_into_user_text() -> None:
+    """Regression: the layout cache solves anonymously; users must never see that.
+
+    Solving is memoized on geometry rather than product identity, so the solver
+    works with placeholder names. Those placeholders have to be mapped back into
+    every generated string, not just the id fields — otherwise the user is told
+    that 'slot_2' will not fit in their bathroom.
+    """
+    from backend.catalog import load_catalog
+    from backend.constraints import BathroomConstraints, build_layout
+
+    catalog = {product.id: product for product in load_catalog()}
+    room = BathroomConstraints.model_validate(
+        {
+            "room_width_ft": 5,
+            "room_length_ft": 5,
+            "required_categories": ["vanity", "smart_shower", "bathtub"],
+            "door": {"wall": "south", "offset_in": 6, "width_in": 30},
+        }
+    )
+    products = [
+        catalog["vanity_72_double_luxury"],
+        catalog["smart_shower_digital_premium"],
+        catalog["bathtub_freestanding_luxury"],
+    ]
+
+    # Solve twice: the second call is served from the cache, which is the path
+    # that previously leaked.
+    build_layout(products, room)
+    layout = build_layout(products, room)
+
+    assert layout.unplaced, "this configuration should not fit a 5x5 room"
+    texts = (
+        [item.reason for item in layout.unplaced]
+        + layout.notes
+        + layout.circulation_notes
+        + [item.product_name for item in layout.placed]
+        + [item.product_name for item in layout.unplaced]
+    )
+    for text in texts:
+        assert "slot_" not in text, f"placeholder leaked into user-facing text: {text}"
+
+    names = {product.name for product in products}
+    assert any(
+        any(name in item.reason for name in names) for item in layout.unplaced
+    ), "the reason should name the actual product"

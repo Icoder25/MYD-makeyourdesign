@@ -38,16 +38,26 @@ def test_valid_small_bathroom_is_feasible() -> None:
     assert all(item.status in {"pass", "warning"} for item in report.checks)
 
 
-def test_oversized_vanity_fails_spatial_fit_and_zone_fit() -> None:
+def test_oversized_vanity_is_rejected_with_a_specific_reason() -> None:
+    """A 72in vanity in a 5ft-wide room fails, and says which measurement failed.
+
+    Zone-fit is deliberately not reported here: the solver never placed the
+    vanity, so layout_fit carries the real cause and a zone complaint on top
+    would just echo it.
+    """
     report = configuration(
         "fx_vanity_double",
         "fx_toilet_standard",
         room_width_ft=5,
     )
 
-    assert report.feasible is False
+    assert report.status == "infeasible"
     assert check(report, "spatial_fit").status == "fail"
-    assert check(report, "fixture_zone_fit").status == "fail"
+    assert check(report, "layout_fit").status == "fail"
+    assert not any(
+        item.constraint == "fixture_zone_fit" and item.details.get("product_id") == "fx_vanity_double"
+        for item in report.checks
+    )
 
 
 def test_budget_failure_is_structured() -> None:

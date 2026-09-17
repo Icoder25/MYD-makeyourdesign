@@ -401,19 +401,35 @@ def _reattach_products(layout: RoomLayout, ordered: list[FixtureRequest]) -> Roo
     """Put real product identities back onto a layout solved anonymously."""
     by_slot = {f"slot_{index}": request for index, request in enumerate(ordered)}
 
-    def named(item, field_id: str = "product_id", field_name: str = "product_name"):
-        request = by_slot.get(getattr(item, field_id))
-        if request is None:
-            return item
-        return item.model_copy(
-            update={field_id: request.product_id, field_name: request.product_name}
-        )
+    def rename(text: str) -> str:
+        """Replace slot placeholders inside generated prose.
+
+        The solver builds its reasons from the names it was given, which for a
+        cached solve are placeholders. Without this the user is told that
+        'slot_2' will not fit in their bathroom.
+        """
+        for slot, request in by_slot.items():
+            if slot in text:
+                text = text.replace(slot, request.product_name)
+        return text
+
+    def named(item):
+        updates: dict[str, object] = {}
+        request = by_slot.get(item.product_id)
+        if request is not None:
+            updates["product_id"] = request.product_id
+            updates["product_name"] = request.product_name
+        reason = getattr(item, "reason", None)
+        if reason:
+            updates["reason"] = rename(reason)
+        return item.model_copy(update=updates) if updates else item
 
     return layout.model_copy(
         update={
             "placed": [named(item) for item in layout.placed],
             "unplaced": [named(item) for item in layout.unplaced],
-            "notes": [note for note in layout.notes],
+            "notes": [rename(note) for note in layout.notes],
+            "circulation_notes": [rename(note) for note in layout.circulation_notes],
         }
     )
 
@@ -503,7 +519,17 @@ def validate_configuration(
         check_compatibility(products),
     ]
     checks.extend(fits_room(product, room) for product in products)
-    checks.extend(fits_fixture_zone(product, effective_room) for product in products)
+
+    # Zone-fit is only meaningful for a product the solver actually placed. For
+    # one it could not place, layout_fit already reports the real cause, and
+    # adding "no zone exists for this category" on top is just an echo of the
+    # same failure in less useful words.
+    placed_ids = {item.product_id for item in layout.placed}
+    checks.extend(
+        fits_fixture_zone(product, effective_room)
+        for product in products
+        if product.id in placed_ids
+    )
     checks.extend(check_layout(layout))
     checks.extend(
         [
