@@ -1,6 +1,8 @@
 from collections.abc import Iterable
 
-from .models import BathroomConstraints, CheckResult, ConfigurationReport, Product
+from backend.layout import FixtureRequest, RoomLayout, solve_layout
+
+from .models import BathroomConstraints, CheckResult, ConfigurationReport, FixtureZone, Product
 
 CATEGORY_ALIASES = {
     "toilet": {"toilet", "smart_toilet"},
@@ -14,15 +16,21 @@ def _check(
     status: str,
     reason: str,
     *,
-    blocking: bool = True,
+    blocking: bool | None = None,
     **details: object,
 ) -> CheckResult:
+    """Build a check result.
+
+    ``blocking`` defaults to ``status == "fail"``. Only a *proven* failure makes
+    a configuration infeasible. An unknown still does not pass — it surfaces as
+    an outstanding verification requirement instead of being silently upgraded.
+    """
     return CheckResult(
         constraint=constraint,
         passed=passed,
         status=status,  # type: ignore[arg-type]
         reason=reason,
-        blocking=blocking,
+        blocking=(status == "fail") if blocking is None else blocking,
         details=details,
     )
 
@@ -284,10 +292,133 @@ def check_user_constraints(products: Iterable[Product], room: BathroomConstraint
     return _check("user_constraints", True, "pass", "All explicit user constraints are satisfied.")
 
 
-def validate_configuration(products: Iterable[Product], room: BathroomConstraints) -> ConfigurationReport:
+def build_layout(products: Iterable[Product], room: BathroomConstraints) -> RoomLayout:
+    """Run the deterministic layout solver for this configuration in this room."""
+    requests = [
+        FixtureRequest(
+            product_id=product.id,
+            product_name=product.name,
+            category=product.category,
+            width_in=product.dimensions.width_in,
+            depth_in=product.dimensions.depth_in,
+        )
+        for product in products
+    ]
+    return solve_layout(requests, room.room_width_ft, room.room_length_ft, room.door)
+
+
+def check_layout(layout: RoomLayout) -> list[CheckResult]:
+    """Turn solved geometry into constraint results.
+
+    This is where "does it fit?" stops being a bounding-box comparison against
+    the room rectangle and becomes a real question: can every fixture hold a
+    legal position, with code clearance in front of it, without blocking the
+    door or each other, and can a person still reach all of them?
+    """
+    checks: list[CheckResult] = []
+
+    for item in layout.unplaced:
+        checks.append(
+            _check(
+                "layout_fit",
+                False,
+                item.status,
+                item.reason,
+                product_id=item.product_id,
+                category=item.category,
+                required_span_in=item.required_span_in,
+                required_depth_in=item.required_depth_in,
+            )
+        )
+
+    if layout.placed and not layout.unplaced:
+        checks.append(
+            _check(
+                "layout_fit",
+                True,
+                "pass",
+                f"All {len(layout.placed)} floor-standing fixtures hold a legal position with "
+                "the required clearance in front of each.",
+                placed=[item.product_id for item in layout.placed],
+            )
+        )
+
+    if not layout.circulation_ok:
+        for note in layout.circulation_notes or ["The room cannot be navigated once every fixture is placed."]:
+            checks.append(_check("circulation", False, "fail", note))
+    elif layout.placed:
+        checks.append(
+            _check(
+                "circulation",
+                True,
+                "pass",
+                "Every fixture's clear space is reachable from the doorway.",
+            )
+        )
+
+    return checks
+
+
+def _room_with_derived_zones(room: BathroomConstraints, layout: RoomLayout) -> BathroomConstraints:
+    """Fill in any fixture zone the user did not state, using solved geometry.
+
+    A zone the solver derived from the user's own room dimensions and published
+    clearance rules is a computed fact, not an assumption. A zone the user
+    stated explicitly always wins over a derived one.
+    """
+    derived = layout.zones_as_constraint_input()
+    if not derived:
+        return room
+    merged = dict(room.fixture_zones)
+    for category, dims in derived.items():
+        if category not in merged:
+            merged[category] = FixtureZone.model_validate(dims)
+    return room.model_copy(update={"fixture_zones": merged})
+
+
+def validate_configuration(
+    products: Iterable[Product],
+    room: BathroomConstraints,
+    layout: RoomLayout | None = None,
+) -> ConfigurationReport:
     products = list(products)
-    checks = [check_required_categories(products, room), within_budget(products, room), check_compatibility(products)]
+    if layout is None:
+        layout = build_layout(products, room)
+    effective_room = _room_with_derived_zones(room, layout)
+
+    checks = [
+        check_required_categories(products, room),
+        within_budget(products, room),
+        check_compatibility(products),
+    ]
     checks.extend(fits_room(product, room) for product in products)
-    checks.extend(fits_fixture_zone(product, room) for product in products)
-    checks.extend([check_power_requirement(products, room), check_installation(products, room), check_user_constraints(products, room)])
-    return ConfigurationReport(feasible=all(check.passed for check in checks), checks=checks)
+    checks.extend(fits_fixture_zone(product, effective_room) for product in products)
+    checks.extend(check_layout(layout))
+    checks.extend(
+        [
+            check_power_requirement(products, room),
+            check_installation(products, room),
+            check_user_constraints(products, room),
+        ]
+    )
+
+    blocking_failures = [check.reason for check in checks if not check.passed and check.blocking]
+    verification_requirements = [
+        check.reason for check in checks if not check.passed and not check.blocking
+    ]
+
+    if blocking_failures:
+        status = "infeasible"
+    elif verification_requirements:
+        status = "feasible_pending_verification"
+    else:
+        status = "feasible"
+
+    return ConfigurationReport(
+        status=status,
+        feasible=status == "feasible",
+        offerable=status != "infeasible",
+        checks=checks,
+        blocking_failures=blocking_failures,
+        verification_requirements=verification_requirements,
+    )

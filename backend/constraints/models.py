@@ -2,6 +2,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.layout.models import DoorSpec
+
 
 class ProductDimensions(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -78,6 +80,8 @@ class BathroomConstraints(BaseModel):
     fixture_zones: dict[str, FixtureZone] = Field(default_factory=dict)
     electrical_available: bool | None = None
     toilet_rough_in_in: float | None = Field(default=None, gt=0)
+    door: DoorSpec | None = None
+    """Doorway position. Consumes floor area and defines where circulation starts."""
     user_constraints: UserConstraints = Field(default_factory=UserConstraints)
 
 
@@ -93,7 +97,24 @@ class CheckResult(BaseModel):
 
 
 class ConfigurationReport(BaseModel):
+    """Three-state verdict on a configuration.
+
+    The distinction that matters: an *unknown* is never converted into a pass,
+    but it is also not the same thing as a proven failure. A toilet that does
+    not fit is infeasible. A toilet whose rough-in nobody has measured yet is
+    plannable-but-unverified, and saying so is more useful than refusing to
+    plan. Those are separate states here, and the UI renders them differently.
+
+    - ``feasible``  — every check passed. Nothing outstanding.
+    - ``offerable`` — nothing is proven broken, so this may be shown to the
+      user, carrying its verification requirements with it.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
+    status: Literal["feasible", "feasible_pending_verification", "infeasible"] = "feasible"
     feasible: bool
-    checks: list[CheckResult]
+    offerable: bool = True
+    checks: list[CheckResult] = Field(default_factory=list)
+    blocking_failures: list[str] = Field(default_factory=list)
+    verification_requirements: list[str] = Field(default_factory=list)

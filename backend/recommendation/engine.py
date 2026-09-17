@@ -278,7 +278,7 @@ def _closest_alternatives(
     max_candidates: int,
 ) -> list[ClosestAlternative]:
     def violation_count(item: tuple[list[Product], ConfigurationReport]) -> int:
-        return sum(1 for check in item[1].checks if not check.passed)
+        return sum(1 for check in item[1].checks if not check.passed and check.blocking)
 
     ranked = sorted(evaluated, key=lambda item: (violation_count(item), sum(p.price or 0 for p in item[0])))
     alternatives = []
@@ -387,7 +387,9 @@ def recommend(
     combos = generate_configurations(candidates_by_slot) if not missing_slots else []
 
     evaluated = [(combo, validate_configuration(combo, room)) for combo in combos]
-    valid = [(products, report) for products, report in evaluated if report.feasible]
+    # Offerable, not merely feasible: a configuration with nothing proven broken
+    # is worth showing, provided its outstanding verifications travel with it.
+    valid = [(products, report) for products, report in evaluated if report.offerable]
 
     if valid:
         candidate_objs: list[CandidateConfiguration] = []
@@ -404,10 +406,21 @@ def recommend(
                     constraint_report=report,
                     score=score,
                     installation_warnings=_extract_installation_warnings(report),
-                    verification_requirements=_extract_verification_notes(report) + water_notes,
+                    verification_requirements=(
+                        report.verification_requirements + _extract_verification_notes(report) + water_notes
+                    ),
                 )
             )
-        candidate_objs.sort(key=lambda candidate: (-candidate.score.total, candidate.total_price))
+        # A fully verified configuration always outranks one with outstanding
+        # verifications, whatever the scores say. Score only breaks ties inside a
+        # tier — it can never promote an unverified option above a verified one.
+        candidate_objs.sort(
+            key=lambda candidate: (
+                0 if candidate.constraint_report.status == "feasible" else 1,
+                -candidate.score.total,
+                candidate.total_price,
+            )
+        )
         top = candidate_objs[:max_candidates]
         _annotate_relative(top)
         _label_candidates(top)

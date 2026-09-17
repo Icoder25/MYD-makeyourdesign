@@ -1,5 +1,7 @@
 from .engine import (
     CATEGORY_ALIASES,
+    build_layout,
+    check_layout,
     check_compatibility,
     check_installation,
     check_power_requirement,
@@ -12,6 +14,7 @@ from .engine import (
 )
 from .models import (
     BathroomConstraints,
+    DoorSpec,
     CheckResult,
     ConfigurationReport,
     FixtureZone,
@@ -23,6 +26,9 @@ from .models import (
 __all__ = [
     "CATEGORY_ALIASES",
     "BathroomConstraints",
+    "DoorSpec",
+    "build_layout",
+    "check_layout",
     "CheckResult",
     "ConfigurationReport",
     "FixtureZone",
