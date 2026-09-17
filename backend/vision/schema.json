@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BathroomVisionEvidence",
+  "type": "object",
+  "required": ["authoritative", "overall_confidence", "detected_objects", "approximate_fixture_zones", "ambiguous_objects", "occlusions", "missing_information", "unverifiable_attributes"],
+  "properties": {
+    "authoritative": { "type": "boolean", "const": false },
+    "overall_confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+    "detected_objects": { "type": "array", "items": { "$ref": "#/$defs/DetectedObject" } },
+    "approximate_fixture_zones": { "type": "array", "items": { "$ref": "#/$defs/FixtureZone" } },
+    "ambiguous_objects": { "type": "array", "items": { "$ref": "#/$defs/AmbiguousObject" } },
+    "occlusions": { "type": "array", "items": { "$ref": "#/$defs/Occlusion" } },
+    "missing_information": { "type": "array", "items": { "type": "string" } },
+    "unverifiable_attributes": { "$ref": "#/$defs/UnverifiableAttributes" }
+  },
+  "$defs": {
+    "BoundingBox": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "y": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "width": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "height": { "type": "number", "minimum": 0.0, "maximum": 1.0 }
+      }
+    },
+    "DetectedObject": {
+      "type": "object",
+      "required": ["type", "confidence", "bounding_box"],
+      "properties": {
+        "type": { "type": "string", "enum": ["toilet", "sink", "vanity", "shower", "bathtub", "door", "window", "mirror", "cabinet", "obstacle"] },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "bounding_box": { "$ref": "#/$defs/BoundingBox" }
+      }
+    },
+    "FixtureZone": {
+      "type": "object",
+      "required": ["zone_type", "relative_position", "bounding_box"],
+      "properties": {
+        "zone_type": { "type": "string", "enum": ["wet_zone", "dry_vanity_zone", "toilet_zone", "circulation_clearance"] },
+        "relative_position": { "type": "string", "enum": ["left_wall", "right_wall", "back_wall", "center", "foreground_left", "foreground_right"] },
+        "bounding_box": { "$ref": "#/$defs/BoundingBox" }
+      }
+    },
+    "AmbiguousObject": {
+      "type": "object",
+      "required": ["bounding_box", "candidate_types", "reason"],
+      "properties": { "bounding_box": { "$ref": "#/$defs/BoundingBox" }, "candidate_types": { "type": "array", "items": { "type": "string" } }, "reason": { "type": "string" } }
+    },
+    "Occlusion": {
+      "type": "object",
+      "required": ["target_object", "occluded_by", "estimated_occlusion_pct"],
+      "properties": { "target_object": { "type": "string" }, "occluded_by": { "type": "string" }, "estimated_occlusion_pct": { "type": "number", "minimum": 0.0, "maximum": 100.0 } }
+    },
+    "UnverifiableItem": {
+      "type": "object",
+      "required": ["status", "verification_required", "reason"],
+      "properties": { "status": { "type": "string", "const": "unknown" }, "verification_required": { "type": "boolean", "const": true }, "reason": { "type": "string" } }
+    },
+    "UnverifiableAttributes": {
+      "type": "object",
+      "required": ["exact_room_dimensions", "wall_thickness", "plumbing_location", "toilet_rough_in", "hidden_pipes", "electrical_availability", "structural_constraints"],
+      "properties": {
+        "exact_room_dimensions": { "$ref": "#/$defs/UnverifiableItem" },
+        "wall_thickness": { "$ref": "#/$defs/UnverifiableItem" },
+        "plumbing_location": { "$ref": "#/$defs/UnverifiableItem" },
+        "toilet_rough_in": { "$ref": "#/$defs/UnverifiableItem" },
+        "hidden_pipes": { "$ref": "#/$defs/UnverifiableItem" },
+        "electrical_availability": { "$ref": "#/$defs/UnverifiableItem" },
+        "structural_constraints": { "$ref": "#/$defs/UnverifiableItem" }
+      }
+    }
+  }
+}

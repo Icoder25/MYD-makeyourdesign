@@ -1,0 +1,58 @@
+[
+  {
+    "id": "kohler_vanity_001",
+    "name": "Kohler Compact Vanity",
+    "category": "vanity",
+    "price": 42000,
+    "currency": "INR",
+    "dimensions": {"width_in": 30, "depth_in": 20, "height_in": 34},
+    "installation": {"type": "floor_mounted"},
+    "compatibility_group": ["standard_bathroom"],
+    "incompatible_with": [],
+    "electrical_required": false,
+    "smart": {"features": [], "konnect_compatible": false},
+    "style": ["modern", "minimalist"]
+  },
+  {
+    "id": "kohler_toilet_001",
+    "name": "Kohler Standard Toilet",
+    "category": "toilet",
+    "price": 35000,
+    "currency": "INR",
+    "dimensions": {"width_in": 28, "depth_in": 29, "height_in": 30},
+    "installation": {"type": "floor_mounted", "rough_in_in": 12},
+    "compatibility_group": ["standard_bathroom"],
+    "incompatible_with": [],
+    "electrical_required": false,
+    "smart": {"features": [], "konnect_compatible": false},
+    "style": ["modern"]
+  },
+  {
+    "id": "kohler_smart_toilet_001",
+    "name": "Kohler Smart Toilet",
+    "category": "smart_toilet",
+    "price": 125000,
+    "currency": "INR",
+    "dimensions": {"width_in": 28, "depth_in": 30, "height_in": 22},
+    "installation": {"type": "floor_mounted", "rough_in_in": 12},
+    "compatibility_group": ["standard_bathroom"],
+    "incompatible_with": [],
+    "electrical_required": true,
+    "smart": {"features": ["heated_seat", "bidet"], "konnect_compatible": true},
+    "style": ["modern"]
+  },
+  {
+    "id": "kohler_oversized_vanity_001",
+    "name": "Kohler Double Vanity",
+    "category": "vanity",
+    "price": 88000,
+    "currency": "INR",
+    "dimensions": {"width_in": 72, "depth_in": 22, "height_in": 34},
+    "installation": {"type": "floor_mounted"},
+    "compatibility_group": ["standard_bathroom"],
+    "incompatible_with": [],
+    "electrical_required": false,
+    "smart": {"features": [], "konnect_compatible": false},
+    "style": ["modern"]
+  }
+]

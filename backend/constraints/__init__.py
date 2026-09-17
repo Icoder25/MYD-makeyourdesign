@@ -1,0 +1,41 @@
+from .engine import (
+    CATEGORY_ALIASES,
+    check_compatibility,
+    check_installation,
+    check_power_requirement,
+    check_required_categories,
+    check_user_constraints,
+    fits_fixture_zone,
+    fits_room,
+    validate_configuration,
+    within_budget,
+)
+from .models import (
+    BathroomConstraints,
+    CheckResult,
+    ConfigurationReport,
+    FixtureZone,
+    Product,
+    UserConstraints,
+    WaterInfo,
+)
+
+__all__ = [
+    "CATEGORY_ALIASES",
+    "BathroomConstraints",
+    "CheckResult",
+    "ConfigurationReport",
+    "FixtureZone",
+    "Product",
+    "UserConstraints",
+    "WaterInfo",
+    "check_compatibility",
+    "check_installation",
+    "check_power_requirement",
+    "check_required_categories",
+    "check_user_constraints",
+    "fits_fixture_zone",
+    "fits_room",
+    "validate_configuration",
+    "within_budget",
+]

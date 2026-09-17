@@ -1,0 +1,99 @@
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class ProductDimensions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    width_in: float | None = Field(default=None, gt=0)
+    depth_in: float | None = Field(default=None, gt=0)
+    height_in: float | None = Field(default=None, gt=0)
+
+
+class InstallationInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: str | None = None
+    rough_in_in: float | None = Field(default=None, gt=0)
+
+
+class SmartInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    features: list[str] = Field(default_factory=list)
+    konnect_compatible: bool | None = None
+
+
+class WaterInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    flow_rate_gpm: float | None = Field(default=None, gt=0)
+    flush_volume_gal: float | None = Field(default=None, gt=0)
+    watersense_certified: bool | None = None
+
+
+class Product(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    category: str
+    price: float | None = Field(default=None, ge=0)
+    currency: str = "INR"
+    dimensions: ProductDimensions = Field(default_factory=ProductDimensions)
+    installation: InstallationInfo = Field(default_factory=InstallationInfo)
+    compatibility_group: list[str] = Field(default_factory=list)
+    incompatible_with: list[str] = Field(default_factory=list)
+    electrical_required: bool | None = None
+    smart: SmartInfo = Field(default_factory=SmartInfo)
+    water: WaterInfo = Field(default_factory=WaterInfo)
+    style: list[str] = Field(default_factory=list)
+
+
+class FixtureZone(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    width_ft: float | None = Field(default=None, gt=0)
+    depth_ft: float | None = Field(default=None, gt=0)
+
+
+class UserConstraints(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    allowed_categories: list[str] = Field(default_factory=list)
+    required_styles: list[str] = Field(default_factory=list)
+    max_product_depth_in: float | None = Field(default=None, gt=0)
+
+
+class BathroomConstraints(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    room_length_ft: float | None = Field(default=None, gt=0)
+    room_width_ft: float | None = Field(default=None, gt=0)
+    ceiling_height_ft: float | None = Field(default=None, gt=0)
+    budget: float | None = Field(default=None, ge=0)
+    currency: str = "INR"
+    required_categories: list[str] = Field(default_factory=list)
+    fixture_zones: dict[str, FixtureZone] = Field(default_factory=dict)
+    electrical_available: bool | None = None
+    toilet_rough_in_in: float | None = Field(default=None, gt=0)
+    user_constraints: UserConstraints = Field(default_factory=UserConstraints)
+
+
+class CheckResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    constraint: str
+    passed: bool
+    status: Literal["pass", "fail", "verification_required", "warning"]
+    reason: str
+    blocking: bool = True
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConfigurationReport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    feasible: bool
+    checks: list[CheckResult]
