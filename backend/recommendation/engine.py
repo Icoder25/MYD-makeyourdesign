@@ -1,4 +1,3 @@
-import itertools
 from collections import defaultdict
 from collections.abc import Iterable
 
@@ -43,14 +42,63 @@ def retrieve_candidate_products(
     return by_slot
 
 
-def generate_configurations(candidates_by_slot: dict[str, list[Product]]) -> list[list[Product]]:
-    """Cartesian product across required-category slots: one product per slot."""
+MAX_CONFIGURATIONS_EVALUATED = 2000
+
+
+def generate_configurations(
+    candidates_by_slot: dict[str, list[Product]],
+    budget: float | None = None,
+    limit: int = MAX_CONFIGURATIONS_EVALUATED,
+) -> list[list[Product]]:
+    """One product per required-category slot, pruned as the combination is built.
+
+    A full cartesian product over a realistic catalog is tens of thousands of
+    combinations, and validating each one means solving a floor plan. Two things
+    keep this tractable without changing which configurations are reachable:
+
+    - **Budget pruning.** Slots are explored cheapest-first, and a partial
+      combination whose running total already exceeds the budget is abandoned:
+      every completion of it would exceed the budget too. This prunes whole
+      subtrees rather than individual leaves.
+    - **A hard ceiling.** Exploring cheapest-first means the ceiling, if it is
+      ever reached, discards only the most expensive combinations — the ones
+      least likely to survive a budget constraint anyway.
+
+    When no budget is set, nothing is pruned and only the ceiling applies.
+    """
     if not candidates_by_slot:
         return [[]]
-    slots = list(candidates_by_slot.values())
+    slots = [sorted(products, key=lambda p: p.price or 0) for products in candidates_by_slot.values()]
     if any(not slot for slot in slots):
         return []
-    return [list(combo) for combo in itertools.product(*slots)]
+
+    # Cheapest possible completion from each slot onward, for lookahead pruning.
+    cheapest_remaining = [0.0] * (len(slots) + 1)
+    for index in range(len(slots) - 1, -1, -1):
+        cheapest_remaining[index] = cheapest_remaining[index + 1] + (slots[index][0].price or 0)
+
+    results: list[list[Product]] = []
+
+    def walk(index: int, chosen: list[Product], running_total: float) -> None:
+        if len(results) >= limit:
+            return
+        if index == len(slots):
+            results.append(list(chosen))
+            return
+        for product in slots[index]:
+            price = product.price or 0
+            new_total = running_total + price
+            if budget is not None and new_total + cheapest_remaining[index + 1] > budget:
+                # Slots are price-sorted, so every later product here is worse.
+                break
+            chosen.append(product)
+            walk(index + 1, chosen, new_total)
+            chosen.pop()
+            if len(results) >= limit:
+                return
+
+    walk(0, [], 0.0)
+    return results
 
 
 def _spatial_score(products: list[Product], room: BathroomConstraints) -> float:
@@ -80,10 +128,28 @@ def _spatial_score(products: list[Product], room: BathroomConstraints) -> float:
     return max(0.0, min(1.0, 1.0 - avg_pressure))
 
 
+BUDGET_SWEET_SPOT = 0.85
+"""Fraction of budget a well-matched configuration is expected to use."""
+
+
 def _budget_score(total_price: float, budget: float | None) -> float:
+    """Score how well a configuration *uses* the budget, not how little it spends.
+
+    Someone with a Rs 2.5 lakh budget is not better served by a Rs 76,000 plan.
+    Spending far under budget means leaving quality on the table just as surely
+    as going over means the plan is unaffordable. This peaks near 85% of budget
+    and falls away on both sides; over budget scores zero, because the hard
+    constraint has already rejected it and score must never rescue it.
+    """
     if not budget:
         return 0.5
-    return max(0.0, min(1.0, 1.0 - total_price / budget))
+    ratio = total_price / budget
+    if ratio > 1.0:
+        return 0.0
+    if ratio >= BUDGET_SWEET_SPOT:
+        # 0.85 -> 1.0 tapering to 1.0 -> 0.85 as it approaches the ceiling.
+        return 1.0 - 0.15 * (ratio - BUDGET_SWEET_SPOT) / (1.0 - BUDGET_SWEET_SPOT)
+    return max(0.0, ratio / BUDGET_SWEET_SPOT)
 
 
 def _style_score(products: list[Product], preference: PreferenceProfile) -> float:
@@ -111,26 +177,40 @@ def _smart_feature_score(products: list[Product], preference: PreferenceProfile)
     return base
 
 
+WATER_RELEVANT_CATEGORIES = frozenset({"toilet", "smart_toilet", "faucet", "shower", "smart_shower"})
+
+
 def _water_efficiency_score(products: list[Product]) -> tuple[float, list[str]]:
+    """Average efficiency across the products that actually use water.
+
+    A vanity has no flow rate. That is not an unknown to be scored neutrally —
+    it is simply not a water fixture, and including it would dilute the score of
+    every configuration toward 0.5 and make the dimension meaningless.
+
+    For products that do use water, efficiency is read from the *computed*
+    eligibility flag (recorded flow against the published WaterSense threshold),
+    not from a certification claim. A missing flow figure stays unknown: scored
+    neutrally and flagged, never assumed efficient.
+    """
     scores: list[float] = []
     notes: list[str] = []
     for product in products:
-        water = product.water
-        if water.watersense_certified is None and water.flow_rate_gpm is None and water.flush_volume_gal is None:
-            notes.append(
-                f"Water-efficiency data is not available for {product.name}; "
-                "scored as neutral pending manufacturer-specification verification."
-            )
-            scores.append(0.5)
+        if product.category not in WATER_RELEVANT_CATEGORIES:
             continue
-        if water.watersense_certified is True:
+        water = product.water
+        verdict = water.watersense_eligible
+        if verdict is None:
+            verdict = water.watersense_certified
+        if verdict is True:
             scores.append(1.0)
-        elif water.watersense_certified is False:
-            scores.append(0.0)
+        elif verdict is False:
+            # Records a real, measured figure that exceeds the threshold. Known,
+            # not unknown — so it scores low rather than neutral.
+            scores.append(0.2)
         else:
             notes.append(
-                f"WaterSense certification is undocumented for {product.name}; "
-                "scored as neutral pending verification."
+                f"No flow or flush figure is recorded for {product.name}; scored as neutral "
+                "pending manufacturer-specification verification."
             )
             scores.append(0.5)
     if not scores:
@@ -229,18 +309,68 @@ def _annotate_relative(candidates: list[CandidateConfiguration]) -> None:
             candidate.strengths.append("Most spacious layout among the returned options.")
 
 
-def _label_candidates(candidates: list[CandidateConfiguration]) -> None:
+def _select_diverse_candidates(
+    candidates: list[CandidateConfiguration], max_candidates: int
+) -> list[CandidateConfiguration]:
+    """Pick options that represent genuinely different trade-offs.
+
+    Returning the top three by score tends to return the same configuration
+    three times with one component swapped — technically the highest scores,
+    practically not a choice at all. Instead each slot is filled by a different
+    archetype, so the user is choosing between positions rather than between
+    rounding errors:
+
+      1. the best overall balance,
+      2. the least expensive option that still holds up,
+      3. the most water-efficient option.
+
+    Ranking integrity is preserved: every candidate here already passed the hard
+    constraints, and a fully verified configuration is never displaced by an
+    unverified one because the pool is ordered by tier before selection.
+    """
     if not candidates:
-        return
-    best_budget = max(candidates, key=lambda c: c.score.budget)
-    best_water = max(candidates, key=lambda c: c.score.water_efficiency)
-    for candidate in candidates:
-        if candidate is best_budget:
-            candidate.label = "budget_focused"
-        elif candidate is best_water and candidate.label is None:
-            candidate.label = "sustainability_focused"
-        else:
-            candidate.label = "balanced"
+        return []
+
+    def tier(candidate: CandidateConfiguration) -> int:
+        return 0 if candidate.constraint_report.status == "feasible" else 1
+
+    best_tier = min(tier(candidate) for candidate in candidates)
+    pool = [candidate for candidate in candidates if tier(candidate) == best_tier]
+
+    selected: list[CandidateConfiguration] = []
+    chosen_ids: set[frozenset[str]] = set()
+
+    def take(candidate: CandidateConfiguration | None, label: str) -> None:
+        if candidate is None or len(selected) >= max_candidates:
+            return
+        key = frozenset(product.id for product in candidate.products)
+        if key in chosen_ids:
+            return
+        candidate.label = label
+        chosen_ids.add(key)
+        selected.append(candidate)
+
+    def best_by(key, exclude_chosen: bool = True):
+        remaining = [
+            candidate
+            for candidate in pool
+            if not exclude_chosen
+            or frozenset(p.id for p in candidate.products) not in chosen_ids
+        ]
+        return max(remaining, key=key) if remaining else None
+
+    take(best_by(lambda c: c.score.total), "recommended")
+    take(best_by(lambda c: -c.total_price), "budget_focused")
+    take(best_by(lambda c: (c.score.water_efficiency, c.score.total)), "sustainability_focused")
+
+    # Backfill by score if archetypes collided on the same configuration.
+    while len(selected) < max_candidates:
+        filler = best_by(lambda c: c.score.total)
+        if filler is None:
+            break
+        take(filler, "alternative")
+
+    return selected
 
 
 def _summarize_violations(
@@ -384,7 +514,14 @@ def recommend(
 
     candidates_by_slot = retrieve_candidate_products(catalog, room)
     missing_slots = [slot for slot, products in candidates_by_slot.items() if not products]
-    combos = generate_configurations(candidates_by_slot) if not missing_slots else []
+    combos = generate_configurations(candidates_by_slot, room.budget) if not missing_slots else []
+    budget_pruned_everything = not combos and not missing_slots and room.budget is not None
+    if budget_pruned_everything:
+        # Every combination was abandoned for exceeding the budget. Rebuild a
+        # bounded unpruned set so the conflict can be quantified — the user needs
+        # to know *how far* over budget the closest option is, not just that
+        # nothing fit.
+        combos = generate_configurations(candidates_by_slot, budget=None, limit=200)
 
     evaluated = [(combo, validate_configuration(combo, room)) for combo in combos]
     # Offerable, not merely feasible: a configuration with nothing proven broken
@@ -421,9 +558,8 @@ def recommend(
                 candidate.total_price,
             )
         )
-        top = candidate_objs[:max_candidates]
+        top = _select_diverse_candidates(candidate_objs, max_candidates)
         _annotate_relative(top)
-        _label_candidates(top)
         return RecommendationResult(status="ok", candidates=top)
 
     return RecommendationResult(

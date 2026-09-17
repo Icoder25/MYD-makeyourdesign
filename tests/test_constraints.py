@@ -1,13 +1,7 @@
-import json
-from pathlib import Path
-
 from backend.constraints import BathroomConstraints, Product, validate_configuration
 
 
-CATALOG = json.loads(
-    (Path(__file__).parents[1] / "catalog" / "products.json").read_text(encoding="utf-8")
-)
-PRODUCTS = {item["id"]: Product.model_validate(item) for item in CATALOG}
+from tests.fixtures import PRODUCTS  # noqa: E402
 
 
 def room(**overrides: object) -> BathroomConstraints:
@@ -38,7 +32,7 @@ def check(report, constraint: str):
 
 
 def test_valid_small_bathroom_is_feasible() -> None:
-    report = configuration("kohler_vanity_001", "kohler_toilet_001")
+    report = configuration("fx_vanity_compact", "fx_toilet_standard")
 
     assert report.feasible is True
     assert all(item.status in {"pass", "warning"} for item in report.checks)
@@ -46,8 +40,8 @@ def test_valid_small_bathroom_is_feasible() -> None:
 
 def test_oversized_vanity_fails_spatial_fit_and_zone_fit() -> None:
     report = configuration(
-        "kohler_oversized_vanity_001",
-        "kohler_toilet_001",
+        "fx_vanity_double",
+        "fx_toilet_standard",
         room_width_ft=5,
     )
 
@@ -58,8 +52,8 @@ def test_oversized_vanity_fails_spatial_fit_and_zone_fit() -> None:
 
 def test_budget_failure_is_structured() -> None:
     report = configuration(
-        "kohler_vanity_001",
-        "kohler_toilet_001",
+        "fx_vanity_compact",
+        "fx_toilet_standard",
         budget=50000,
     )
 
@@ -72,8 +66,8 @@ def test_budget_failure_is_structured() -> None:
 
 def test_smart_product_with_missing_power_confirmation_requires_verification() -> None:
     report = configuration(
-        "kohler_vanity_001",
-        "kohler_smart_toilet_001",
+        "fx_vanity_compact",
+        "fx_smart_toilet",
         electrical_available=None,
     )
 
@@ -85,8 +79,8 @@ def test_smart_product_with_missing_power_confirmation_requires_verification() -
 
 def test_unknown_rough_in_is_not_a_pass() -> None:
     report = configuration(
-        "kohler_vanity_001",
-        "kohler_toilet_001",
+        "fx_vanity_compact",
+        "fx_toilet_standard",
         toilet_rough_in_in=None,
     )
 
@@ -97,11 +91,11 @@ def test_unknown_rough_in_is_not_a_pass() -> None:
 
 
 def test_explicitly_incompatible_product_combination_fails() -> None:
-    incompatible_toilet = PRODUCTS["kohler_toilet_001"].model_copy(
-        update={"incompatible_with": ["kohler_vanity_001"]}
+    incompatible_toilet = PRODUCTS["fx_toilet_standard"].model_copy(
+        update={"incompatible_with": ["fx_vanity_compact"]}
     )
     report = validate_configuration(
-        [PRODUCTS["kohler_vanity_001"], incompatible_toilet],
+        [PRODUCTS["fx_vanity_compact"], incompatible_toilet],
         room(),
     )
 
@@ -112,10 +106,10 @@ def test_explicitly_incompatible_product_combination_fails() -> None:
 
 
 def test_multiple_valid_products_can_be_validated_independently() -> None:
-    standard = configuration("kohler_vanity_001", "kohler_toilet_001")
+    standard = configuration("fx_vanity_compact", "fx_toilet_standard")
     smart = configuration(
-        "kohler_vanity_001",
-        "kohler_smart_toilet_001",
+        "fx_vanity_compact",
+        "fx_smart_toilet",
         budget=200000,
         electrical_available=True,
     )

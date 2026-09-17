@@ -1,6 +1,3 @@
-import json
-from pathlib import Path
-
 from backend.constraints import BathroomConstraints, Product
 from backend.recommendation import (
     PreferenceProfile,
@@ -9,11 +6,7 @@ from backend.recommendation import (
     recommend,
 )
 
-CATALOG = json.loads(
-    (Path(__file__).parents[1] / "catalog" / "products.json").read_text(encoding="utf-8")
-)
-PRODUCTS = {item["id"]: Product.model_validate(item) for item in CATALOG}
-CATALOG_LIST = list(PRODUCTS.values())
+from tests.fixtures import CATALOG_LIST, PRODUCTS  # noqa: E402
 
 
 def room(**overrides: object) -> BathroomConstraints:
@@ -47,7 +40,7 @@ def test_generates_multiple_valid_candidates_and_never_ranks_invalid_above_valid
     assert 1 <= len(result.candidates) <= 3
     for candidate in result.candidates:
         assert candidate.constraint_report.feasible is True
-        assert "kohler_oversized_vanity_001" not in product_ids(candidate)
+        assert "fx_vanity_double" not in product_ids(candidate)
 
 
 def test_returns_approximately_three_candidates_when_more_are_valid() -> None:
@@ -87,32 +80,72 @@ def test_candidate_contains_all_required_fields() -> None:
 
 
 def test_water_efficiency_unknown_is_neutral_and_flagged_for_verification() -> None:
+    """The fixture toilets record no flush volume, so efficiency stays unknown."""
     result = recommend(CATALOG_LIST, room(budget=200000))
 
     assert result.status == "ok"
     candidate = result.candidates[0]
     assert candidate.score.water_efficiency == 0.5
-    assert any("Water-efficiency data is not available" in note for note in candidate.verification_requirements)
+    assert any(
+        "No flow or flush figure is recorded" in note
+        for note in candidate.verification_requirements
+    )
+
+
+def test_products_that_do_not_use_water_are_excluded_from_the_water_score() -> None:
+    """A vanity has no flow rate; averaging it in would flatten the dimension."""
+    from backend.recommendation.engine import _water_efficiency_score
+
+    vanity_only = [PRODUCTS["fx_vanity_compact"]]
+    score, notes = _water_efficiency_score(vanity_only)
+    assert score == 0.5
+    assert notes == []
 
 
 def test_configurable_weights_can_change_ranking_order() -> None:
+    """Weights are real inputs, not decoration: changing them changes the winner."""
     smart_room = room(budget=400000, electrical_available=True)
-    preference = PreferenceProfile(smart_feature_preference="prefer")
-
-    equal_weights_result = recommend(CATALOG_LIST, smart_room, preference=preference, weights=ScoringWeights())
-    equal_ranking = [product_ids(c) for c in equal_weights_result.candidates]
-
-    budget_heavy_result = recommend(
-        CATALOG_LIST,
-        smart_room,
-        preference=preference,
-        weights=ScoringWeights(spatial=0.1, budget=10, preference=0.1, water_efficiency=0.1, style=0.1, smart_feature=0.1),
+    dominant = ScoringWeights(
+        spatial=0.1, budget=0.1, preference=0.1, water_efficiency=0.1, style=0.1, smart_feature=10
     )
-    budget_heavy_ranking = [product_ids(c) for c in budget_heavy_result.candidates]
 
-    assert equal_ranking[0] != budget_heavy_ranking[0]
-    assert {"kohler_vanity_001", "kohler_toilet_001"} == budget_heavy_ranking[0]
-    assert {"kohler_vanity_001", "kohler_smart_toilet_001"} == equal_ranking[0]
+    prefers_smart = recommend(
+        CATALOG_LIST, smart_room, preference=PreferenceProfile(smart_feature_preference="prefer"),
+        weights=dominant,
+    )
+    avoids_smart = recommend(
+        CATALOG_LIST, smart_room, preference=PreferenceProfile(smart_feature_preference="avoid"),
+        weights=dominant,
+    )
+
+    top_when_preferred = prefers_smart.candidates[0]
+    top_when_avoided = avoids_smart.candidates[0]
+
+    assert product_ids(top_when_preferred) != product_ids(top_when_avoided)
+    assert any(p.smart.features for p in top_when_preferred.products)
+    assert not any(p.smart.features for p in top_when_avoided.products)
+
+
+def test_budget_score_rewards_using_the_budget_not_underspending() -> None:
+    """A Rs 76,000 plan is not a better answer to a Rs 2.5 lakh brief."""
+    generous = room(budget=400000, electrical_available=True)
+    budget_dominant = ScoringWeights(
+        spatial=0.1, budget=10, preference=0.1, water_efficiency=0.1, style=0.1, smart_feature=0.1
+    )
+    result = recommend(CATALOG_LIST, generous, weights=budget_dominant)
+
+    assert result.status == "ok"
+    winner = result.candidates[0]
+    cheapest = min(c.total_price for c in result.candidates)
+    assert winner.total_price > cheapest
+    assert winner.total_price <= generous.budget
+
+
+def test_over_budget_can_never_be_rescued_by_a_high_score() -> None:
+    from backend.recommendation.engine import _budget_score
+
+    assert _budget_score(500000, 400000) == 0.0
+    assert _budget_score(340000, 400000) > _budget_score(80000, 400000)
 
 
 def test_zero_compliant_configurations_returns_structured_no_compliant_result() -> None:
@@ -140,10 +173,10 @@ def test_missing_catalog_category_is_reported_as_violated_constraint() -> None:
 
 
 def test_incompatible_product_combination_never_becomes_a_candidate() -> None:
-    incompatible_toilet = PRODUCTS["kohler_toilet_001"].model_copy(
-        update={"incompatible_with": ["kohler_vanity_001"], "id": "kohler_toilet_incompatible"}
+    incompatible_toilet = PRODUCTS["fx_toilet_standard"].model_copy(
+        update={"incompatible_with": ["fx_vanity_compact"], "id": "fx_toilet_incompatible"}
     )
-    catalog = [PRODUCTS["kohler_vanity_001"], incompatible_toilet]
+    catalog = [PRODUCTS["fx_vanity_compact"], incompatible_toilet]
     single_option_room = room(required_categories=["vanity", "toilet"])
 
     result = recommend(catalog, single_option_room)
@@ -154,7 +187,7 @@ def test_incompatible_product_combination_never_becomes_a_candidate() -> None:
 
 def test_tradeoff_engine_keeps_smart_features_while_reducing_budget() -> None:
     generous_room = room(budget=250000, electrical_available=True)
-    current_products = [PRODUCTS["kohler_oversized_vanity_001"], PRODUCTS["kohler_smart_toilet_001"]]
+    current_products = [PRODUCTS["fx_vanity_double"], PRODUCTS["fx_smart_toilet"]]
 
     result = propose_budget_reduction(
         current_products,
@@ -167,8 +200,8 @@ def test_tradeoff_engine_keeps_smart_features_while_reducing_budget() -> None:
     assert result.preserved_categories == ["smart_toilet"]
     best_option = result.options[0]
     assert best_option.action == "substitute"
-    assert best_option.removed_product_id == "kohler_oversized_vanity_001"
-    assert best_option.added_product_id == "kohler_vanity_001"
+    assert best_option.removed_product_id == "fx_vanity_double"
+    assert best_option.added_product_id == "fx_vanity_compact"
     assert best_option.price_delta < 0
     assert best_option.resulting_report.feasible is True
     assert best_option.category == "vanity"
@@ -176,7 +209,7 @@ def test_tradeoff_engine_keeps_smart_features_while_reducing_budget() -> None:
 
 def test_tradeoff_engine_reports_no_option_when_nothing_cheaper_exists() -> None:
     generous_room = room(budget=250000, electrical_available=True)
-    current_products = [PRODUCTS["kohler_vanity_001"], PRODUCTS["kohler_toilet_001"]]
+    current_products = [PRODUCTS["fx_vanity_compact"], PRODUCTS["fx_toilet_standard"]]
 
     result = propose_budget_reduction(
         current_products,

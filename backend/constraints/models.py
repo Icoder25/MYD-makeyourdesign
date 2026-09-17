@@ -27,12 +27,40 @@ class SmartInfo(BaseModel):
     konnect_compatible: bool | None = None
 
 
+class ManufacturerClaim(BaseModel):
+    """A claim the manufacturer makes, preserved with its own wording and caveats.
+
+    Marketing figures ("up to 80%") are never folded into a computed annual
+    total. They are surfaced verbatim and attributed. Computed totals use only
+    measured flow and flush figures.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    claim_type: Literal["up_to", "average", "certified"]
+    value: float
+    unit: Literal["percent", "gpm", "gpf"]
+    comparison_baseline: str
+    assumptions: str
+    source_url: str
+
+
 class WaterInfo(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     flow_rate_gpm: float | None = Field(default=None, gt=0)
     flush_volume_gal: float | None = Field(default=None, gt=0)
     watersense_certified: bool | None = None
+    """Whether the manufacturer holds WaterSense certification for this SKU.
+    Left None across the prototype catalog: certification is per-SKU and was not
+    verifiable here. Do not confuse with `watersense_eligible`, which is computed."""
+
+    watersense_eligible: bool | None = None
+    """Computed by the catalog loader from the recorded flow/flush figure against
+    the published WaterSense threshold. An eligibility calculation, not a
+    certification claim. See docs/verified-facts.md section 1."""
+
+    manufacturer_claim: ManufacturerClaim | None = None
 
 
 class Product(BaseModel):
@@ -41,10 +69,32 @@ class Product(BaseModel):
     id: str
     name: str
     category: str
+    tier: Literal["essential", "standard", "premium", "luxury"] = "standard"
+
     price: float | None = Field(default=None, ge=0)
     currency: str = "INR"
+    price_status: Literal["illustrative", "verified", "unknown"] = "illustrative"
+    """Prototype prices are illustrative. No live KOHLER pricing feed was
+    available to this project; see docs/verified-facts.md section 5."""
+
+    verification_status: Literal["verified", "illustrative", "requires_verification"] = (
+        "illustrative"
+    )
+    source: str | None = None
+    kohler_reference_family: str | None = None
+    """The real KOHLER product family whose class this record is modelled on.
+    A taxonomy pointer for a future catalog swap — NOT a claim that this row is
+    that SKU, nor that these dimensions or this price belong to it."""
+
     dimensions: ProductDimensions = Field(default_factory=ProductDimensions)
     installation: InstallationInfo = Field(default_factory=InstallationInfo)
+
+    provides_interfaces: list[str] = Field(default_factory=list)
+    """Mounting/connection interfaces this product offers to others."""
+
+    requires_interfaces: list[str] = Field(default_factory=list)
+    """Interfaces this product needs another product in the configuration to provide."""
+
     compatibility_group: list[str] = Field(default_factory=list)
     incompatible_with: list[str] = Field(default_factory=list)
     electrical_required: bool | None = None

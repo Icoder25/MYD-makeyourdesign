@@ -1,6 +1,8 @@
 from collections.abc import Iterable
+from functools import lru_cache
 
-from backend.layout import FixtureRequest, RoomLayout, solve_layout
+from backend.layout import DoorSpec, FixtureRequest, RoomLayout, solve_layout
+from backend.layout.clearances import placement_rank
 
 from .models import BathroomConstraints, CheckResult, ConfigurationReport, FixtureZone, Product
 
@@ -161,8 +163,19 @@ def check_required_categories(products: Iterable[Product], room: BathroomConstra
 
 
 def check_compatibility(products: Iterable[Product]) -> CheckResult:
+    """Verify products can actually connect to each other.
+
+    Compatibility here means a real installation interface, not a marketing
+    grouping: a single-hole faucet needs a basin drilled for a single hole, a
+    shower trim needs a matching valve. A product declares what it *provides*
+    and what it *requires*; a requirement nobody satisfies is a proven failure.
+
+    An undeclared interface is not silently treated as compatible — it returns
+    verification_required, so the gap is visible instead of assumed away.
+    """
     products = list(products)
     ids = {product.id for product in products}
+
     for product in products:
         conflict = ids.intersection(product.incompatible_with)
         if conflict:
@@ -175,25 +188,51 @@ def check_compatibility(products: Iterable[Product]) -> CheckResult:
                 incompatible_product_ids=sorted(conflict),
             )
 
-    for index, left in enumerate(products):
-        for right in products[index + 1 :]:
-            if not left.compatibility_group or not right.compatibility_group:
-                return _check(
-                    "compatibility",
-                    False,
-                    "verification_required",
-                    f"Compatibility between {left.name} and {right.name} is not documented.",
-                    product_ids=[left.id, right.id],
-                )
-            if not set(left.compatibility_group).intersection(right.compatibility_group):
-                return _check(
-                    "compatibility",
-                    False,
-                    "verification_required",
-                    f"No shared compatibility group is documented for {left.name} and {right.name}.",
-                    product_ids=[left.id, right.id],
-                )
-    return _check("compatibility", True, "pass", "All product pairs have documented compatibility.")
+    provided: set[str] = set()
+    for product in products:
+        provided.update(product.provides_interfaces)
+
+    for product in products:
+        missing = [
+            interface for interface in product.requires_interfaces if interface not in provided
+        ]
+        if missing:
+            return _check(
+                "compatibility",
+                False,
+                "fail",
+                f"{product.name} requires {', '.join(missing)}, which nothing in this "
+                "configuration provides.",
+                product_id=product.id,
+                missing_interfaces=missing,
+            )
+
+    # Legacy grouping check: only applied to products that still use it and
+    # declare no interface information at all.
+    undeclared = [
+        product
+        for product in products
+        if not product.provides_interfaces
+        and not product.requires_interfaces
+        and not product.compatibility_group
+    ]
+    if len(undeclared) > 1:
+        return _check(
+            "compatibility",
+            False,
+            "verification_required",
+            "Compatibility between "
+            + ", ".join(sorted(product.name for product in undeclared))
+            + " is not documented in the catalog.",
+            product_ids=sorted(product.id for product in undeclared),
+        )
+
+    return _check(
+        "compatibility",
+        True,
+        "pass",
+        "Every product's required connections are provided within this configuration.",
+    )
 
 
 def check_power_requirement(products: Iterable[Product], room: BathroomConstraints) -> CheckResult:
@@ -292,9 +331,19 @@ def check_user_constraints(products: Iterable[Product], room: BathroomConstraint
     return _check("user_constraints", True, "pass", "All explicit user constraints are satisfied.")
 
 
-def build_layout(products: Iterable[Product], room: BathroomConstraints) -> RoomLayout:
-    """Run the deterministic layout solver for this configuration in this room."""
-    requests = [
+def _consumes_floor(product: Product, products: list[Product]) -> bool:
+    """Does this product stand on the floor, or mount onto another product?
+
+    A basin drilled into a vanity top occupies the vanity's footprint, not its
+    own. Counting it twice would reject layouts that are physically fine.
+    """
+    if "vanity_top" in product.requires_interfaces:
+        return not any("vanity_top" in other.provides_interfaces for other in products)
+    return True
+
+
+def _layout_requests(products: list[Product]) -> list[FixtureRequest]:
+    return [
         FixtureRequest(
             product_id=product.id,
             product_name=product.name,
@@ -303,8 +352,70 @@ def build_layout(products: Iterable[Product], room: BathroomConstraints) -> Room
             depth_in=product.dimensions.depth_in,
         )
         for product in products
+        if _consumes_floor(product, products)
     ]
-    return solve_layout(requests, room.room_width_ft, room.room_length_ft, room.door)
+
+
+@lru_cache(maxsize=4096)
+def _solve_cached(
+    signature: tuple[tuple[str, float | None, float | None], ...],
+    room_width_ft: float | None,
+    room_length_ft: float | None,
+    door_json: str | None,
+) -> RoomLayout:
+    """Solve one *geometry*, independent of which products produced it.
+
+    Thousands of candidate configurations share a handful of distinct floor
+    geometries — swapping a faucet changes the price, not the floor plan. This
+    caches on the geometry alone; `build_layout` maps the result back onto the
+    actual products.
+    """
+    door = DoorSpec.model_validate_json(door_json) if door_json else None
+    anonymous = [
+        FixtureRequest(f"slot_{index}", f"slot_{index}", category, width, depth)
+        for index, (category, width, depth) in enumerate(signature)
+    ]
+    return solve_layout(anonymous, room_width_ft, room_length_ft, door)
+
+
+def build_layout(products: Iterable[Product], room: BathroomConstraints) -> RoomLayout:
+    """Run the deterministic layout solver for this configuration in this room."""
+    requests = _layout_requests(list(products))
+
+    # The solver sorts by (placement_rank, -width), so an identical sorted
+    # signature yields an identical placement sequence. Sort here too, and the
+    # cached anonymous result maps back onto real products position by position.
+    ordered = sorted(requests, key=lambda r: (placement_rank(r.category), -(r.width_in or 0)))
+    signature = tuple((r.category, r.width_in, r.depth_in) for r in ordered)
+
+    layout = _solve_cached(
+        signature,
+        room.room_width_ft,
+        room.room_length_ft,
+        room.door.model_dump_json() if room.door else None,
+    )
+    return _reattach_products(layout, ordered)
+
+
+def _reattach_products(layout: RoomLayout, ordered: list[FixtureRequest]) -> RoomLayout:
+    """Put real product identities back onto a layout solved anonymously."""
+    by_slot = {f"slot_{index}": request for index, request in enumerate(ordered)}
+
+    def named(item, field_id: str = "product_id", field_name: str = "product_name"):
+        request = by_slot.get(getattr(item, field_id))
+        if request is None:
+            return item
+        return item.model_copy(
+            update={field_id: request.product_id, field_name: request.product_name}
+        )
+
+    return layout.model_copy(
+        update={
+            "placed": [named(item) for item in layout.placed],
+            "unplaced": [named(item) for item in layout.unplaced],
+            "notes": [note for note in layout.notes],
+        }
+    )
 
 
 def check_layout(layout: RoomLayout) -> list[CheckResult]:
