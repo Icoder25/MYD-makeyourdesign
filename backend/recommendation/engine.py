@@ -479,10 +479,43 @@ def _suggest_relaxations(
                     [check.details.get("product_id")] if check.details.get("product_id") else [],
                 )
             elif check.constraint == "compatibility":
+                missing = check.details.get("missing_interfaces") or []
+                if missing:
+                    add(
+                        "compatibility",
+                        f"Choose products whose connections match: nothing in this configuration "
+                        f"provides {', '.join(missing)}. A faucet must match the basin's drilling.",
+                        [check.details.get("product_id")] if check.details.get("product_id") else [],
+                    )
+                else:
+                    add(
+                        "compatibility",
+                        "Replace one of the flagged products; they are recorded as incompatible.",
+                        check.details.get("product_ids") or check.details.get("incompatible_product_ids", []),
+                    )
+            elif check.constraint == "layout_fit" and check.status == "fail":
+                category = check.details.get("category")
+                product_id = check.details.get("product_id")
                 add(
-                    "compatibility",
-                    "Document compatibility between the flagged products, or select alternatives from the same compatibility group.",
-                    check.details.get("product_ids", []),
+                    "layout_fit",
+                    f"No wall position remains for the {category or 'fixture'}. Either drop "
+                    f"'{category}' from the required categories, choose a smaller product for "
+                    "that slot, or plan a larger room.",
+                    [product_id] if product_id else [],
+                )
+                if category:
+                    add(
+                        "category_requirements",
+                        f"Remove '{category}' from the required categories — the room cannot "
+                        "hold every requested fixture at once.",
+                        [],
+                    )
+            elif check.constraint == "circulation":
+                add(
+                    "circulation",
+                    "The room cannot be navigated with every requested fixture in place. "
+                    "Remove one fixture, or choose more compact products.",
+                    [],
                 )
             elif check.constraint == "user_constraints":
                 add(
