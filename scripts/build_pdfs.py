@@ -24,6 +24,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
     BaseDocTemplate,
+    Flowable,
     Frame,
     KeepTogether,
     PageBreak,
@@ -36,6 +37,7 @@ from reportlab.platypus import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO_ROOT))
 
 INK = colors.HexColor("#17191C")
 SOFT = colors.HexColor("#5B6167")
@@ -318,23 +320,134 @@ def comparison_table(rows: list[list[str]], st) -> Table:
     return table
 
 
-ARCHITECTURE = """ Your brief ──▶ React frontend ──▶ FastAPI
-                                    │
-        ┌───────────────────────────┼──────────────────────────┐
-        │                           │                          │
-   ┌────▼─────┐   advisory   ┌──────▼──────────────────┐  ┌────▼──────┐
-   │  VISION  │   only ────▶ │   DETERMINISTIC CORE    │  │ LLM LAYER │
-   │ (Gemini) │              │                         │  │ (Gemini)  │
-   │          │   cannot     │  layout solver          │  │           │
-   │confidence│   reach      │  constraint engine      │  │ interprets│
-   │+ unknowns│   the core   │  recommendation engine  │  │ + explains│
-   └──────────┘              │  sustainability engine  │  │  NEVER    │
-                             │  product catalog        │  │  decides  │
-                             └───────────┬─────────────┘  └────┬──────┘
-                                         │                     │
-                        ┌────────────────▼─────────────────────▼───┐
-                        │ options · 2D plan · water · conflicts    │
-                        └──────────────────────────────────────────┘"""
+def golden_path_layout():
+    """Solve the demo bathroom, so the deck shows real output rather than a mock-up."""
+    from backend.catalog import load_catalog
+    from backend.constraints import BathroomConstraints, build_layout
+    from backend.recommendation import PreferenceProfile, ScoringWeights, recommend
+
+    catalog = list(load_catalog())
+    room = BathroomConstraints.model_validate(
+        {
+            "room_width_ft": 6,
+            "room_length_ft": 8,
+            "budget": 250000,
+            "electrical_available": True,
+            "required_categories": ["vanity", "basin", "faucet", "toilet", "shower"],
+            "door": {"wall": "south", "offset_in": 6, "width_in": 30},
+        }
+    )
+    result = recommend(
+        catalog,
+        room,
+        preference=PreferenceProfile(smart_feature_preference="prefer"),
+        weights=ScoringWeights(water_efficiency=4, smart_feature=4),
+    )
+    best = result.candidates[0]
+    return build_layout(best.products, room), best
+
+
+CATEGORY_FILL = {
+    "toilet": colors.HexColor("#2F6F8F"),
+    "smart_toilet": colors.HexColor("#1F5D7A"),
+    "vanity": colors.HexColor("#7A5B3A"),
+    "basin": colors.HexColor("#8A6A47"),
+    "shower": colors.HexColor("#3F7D6A"),
+    "smart_shower": colors.HexColor("#2F6D5A"),
+    "bathtub": colors.HexColor("#4A6F9C"),
+    "storage": colors.HexColor("#6B6B7D"),
+}
+
+
+class PlanDrawing(Flowable):
+    """Draws the layout solver's real coordinates, clearances included."""
+
+    def __init__(self, layout, width: float, height: float) -> None:
+        super().__init__()
+        self.layout = layout
+        self.width = width
+        self.height = height
+
+    def draw(self) -> None:
+        canvas = self.canv
+        layout = self.layout
+        room_w, room_l = layout.room_width_in, layout.room_length_in
+        scale = min(self.width / room_w, self.height / room_l)
+        ox = (self.width - room_w * scale) / 2
+        oy = 0
+
+        def px(value: float) -> float:
+            return ox + value * scale
+
+        def py(value: float) -> float:
+            return oy + value * scale
+
+        canvas.setFillColor(colors.HexColor("#FBFAF8"))
+        canvas.setStrokeColor(INK)
+        canvas.setLineWidth(1.2)
+        canvas.rect(px(0), py(0), room_w * scale, room_l * scale, stroke=1, fill=1)
+
+        canvas.setDash(2, 2)
+        canvas.setLineWidth(0.5)
+        canvas.setStrokeColor(ACCENT)
+        canvas.setFillColor(colors.Color(0.11, 0.31, 0.42, alpha=0.08))
+        for item in layout.placed:
+            clear = item.clearance
+            canvas.rect(px(clear.x_in), py(clear.y_in),
+                        clear.width_in * scale, clear.depth_in * scale, stroke=1, fill=1)
+
+        if layout.door_swing:
+            swing = layout.door_swing
+            canvas.setStrokeColor(WARN)
+            canvas.setFillColor(colors.Color(0.54, 0.38, 0.09, alpha=0.10))
+            canvas.rect(px(swing.x_in), py(swing.y_in),
+                        swing.width_in * scale, swing.depth_in * scale, stroke=1, fill=1)
+        canvas.setDash()
+
+        for item in layout.placed:
+            foot = item.footprint
+            canvas.setFillColor(CATEGORY_FILL.get(item.category, colors.HexColor("#555555")))
+            canvas.setStrokeColor(colors.white)
+            canvas.setLineWidth(0.5)
+            canvas.rect(px(foot.x_in), py(foot.y_in),
+                        foot.width_in * scale, foot.depth_in * scale, stroke=1, fill=1)
+            label = item.category.replace("_", " ")
+            if foot.width_in * scale > 34 and foot.depth_in * scale > 11:
+                canvas.setFillColor(colors.white)
+                canvas.setFont("Helvetica", 5.6)
+                canvas.drawCentredString(
+                    px(foot.x_in + foot.width_in / 2),
+                    py(foot.y_in + foot.depth_in / 2) - 2,
+                    label,
+                )
+
+        canvas.setFillColor(FAINT)
+        canvas.setFont("Helvetica", 6)
+        canvas.drawCentredString(px(room_w / 2), py(room_l) + 3, f"{room_w / 12:g} ft")
+        canvas.saveState()
+        canvas.translate(px(0) - 4, py(room_l / 2))
+        canvas.rotate(90)
+        canvas.drawCentredString(0, 0, f"{room_l / 12:g} ft")
+        canvas.restoreState()
+
+
+ARCHITECTURE = """ Your brief --> React frontend --> FastAPI
+                                   |
+       +---------------------------+--------------------------+
+       |                           |                          |
+  +----v-----+   advisory   +------v------------------+  +----v------+
+  |  VISION  |   only ----> |   DETERMINISTIC CORE    |  | LLM LAYER |
+  | (Gemini) |              |                         |  | (Gemini)  |
+  |          |   cannot     |  layout solver          |  |           |
+  |confidence|   reach      |  constraint engine      |  | interprets|
+  |+ unknowns|   the core   |  recommendation engine  |  | + explains|
+  +----------+              |  sustainability engine  |  |   NEVER   |
+                            |  product catalog        |  |  decides  |
+                            +------------+------------+  +----+------+
+                                         |                    |
+                       +-----------------v--------------------v---+
+                       | options . 2D plan . water . conflicts    |
+                       +-----------------------------------------+"""
 
 
 def build_presentation() -> Path:
@@ -426,11 +539,22 @@ def build_presentation() -> Path:
     flow.append(Paragraph("Innovation", st["kicker"]))
     flow.append(Paragraph("The most important screen is the one that says no", st["title"]))
 
+    layout, best = golden_path_layout()
+    plan_column = [
+        Paragraph("Real output, not a mock-up", st["h"]),
+        PlanDrawing(layout, width=(SLIDE[0] - 32 * mm) * 0.30, height=118),
+        Spacer(1, 4),
+        Paragraph(
+            "The solver's actual coordinates for the demo brief. Dashed areas are the "
+            "code-required clear floor and the door swing — the constraints that decided "
+            "feasibility, drawn rather than asserted.", st["small"]),
+    ]
+
     flow.append(two_column(
         [Paragraph("Constraint conflict resolution", st["h"]),
          Paragraph("<b>User:</b> “Add a smart shower and a smart toilet and a bathtub, "
                    "keep my budget.”", st["body"]),
-         Paragraph("<b>System:</b> over budget by ₹18,300 — <i>and</i> physically "
+         Paragraph("<b>System:</b> over budget by Rs 18,300 — <i>and</i> physically "
                    "unplaceable in 6 × 8 ft.", st["body"]),
          Paragraph("It names both, and notes that <b>more budget would not fix a spatial "
                    "problem</b>. It then offers the relaxations it actually evaluated and "
@@ -440,24 +564,40 @@ def build_presentation() -> Path:
                    "customer discover the problem during installation.", st["small"])],
         [Paragraph("Against a generative approach", st["h"]),
          comparison_table([
-             ["", "Typical AI design tool", "BathPlan"],
+             ["", "Typical AI tool", "BathPlan"],
              ["Spatial reasoning", "Implied by a rendering", "Solved geometry, IRC clearances"],
              ["Feasibility", "Asserted", "Computed; failing check named"],
              ["Unknowns", "Filled in plausibly", "Stay unknown, surfaced"],
-             ["Impossible ask", "Something close, presented as the answer",
+             ["Impossible ask", "Something close, shown as the answer",
               "Refused, explained, alternatives"],
              ["Water savings", "A percentage", "Formula + baseline + assumptions"],
              ["LLM role", "Decides", "Interprets and explains"],
          ], st)],
-        ratio=(0.42, 0.58),
+        ratio=(0.38, 0.62),
     ))
     flow.append(Spacer(1, 6))
-    flow.append(Paragraph(
+    flow.append(two_column(
+        plan_column,
+        [Paragraph(
+            "<b>Confidence-aware by construction.</b> A constraint report has three states, not "
+            "two: <i>feasible</i>, <i>feasible pending verification</i>, and <i>infeasible</i>. "
+            "An unmeasured rough-in is not the same as a mismatched one — conflating them either "
+            "blocks every real plan or fakes certainty. Pending options are offered, ranked "
+            "strictly below verified ones, and carry their outstanding checks with them.",
+            st["small"]),
+         Paragraph(
+             f"<b>Demo result:</b> {len(layout.placed)} fixtures placed with full code clearance, "
+             f"every one reachable from the doorway, at "
+             f"Rs {best.total_price:,.0f} of a Rs 2,50,000 budget.", st["small"])],
+        ratio=(0.34, 0.66),
+    ))
+    flow.append(Paragraph("", st["small"]))
+    _unused = (
         "<b>Confidence-aware by construction.</b> A constraint report has three states, not two: "
         "<i>feasible</i>, <i>feasible pending verification</i>, and <i>infeasible</i>. An "
         "unmeasured rough-in is not the same as a mismatched one — conflating them either blocks "
         "every real plan or fakes certainty. Pending options are offered, ranked strictly below "
-        "verified ones, and carry their outstanding checks with them.", st["small"]))
+        "verified ones, and carry their outstanding checks with them.")
     flow.append(PageBreak())
 
     # ---- SLIDE 4: KOHLER value + roadmap ----
