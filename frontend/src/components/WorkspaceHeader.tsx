@@ -1,6 +1,7 @@
 import React from "react";
 import { formatMoney } from "../api";
 import type { DoorSpec } from "../types";
+import { Icon } from "./Icon";
 
 export type WorkflowStep = "brief" | "design" | "refine" | "finalize";
 export type AppTheme = "light" | "dark" | "system";
@@ -58,7 +59,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   currentStep = "design",
   theme,
   onSelectTheme,
-  saveStatusText = "✓ Saved just now",
+  saveStatusText = "Saved just now",
   onSaveProject,
   onOpenInspiration,
   onOpenBrief,
@@ -69,19 +70,21 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
 }) => {
   const getReadinessBadge = () => {
     if (!hasPlan) {
-      return <span className="status-badge-studio status-pending">○ No design yet</span>;
+      return <span className="status-badge-studio status-pending">No design yet</span>;
     }
     if (isFinalized) {
-      return <span className="status-badge-studio status-finalized">🔒 Finalized &amp; Locked</span>;
+      return <span className="status-badge-studio status-finalized">
+          <Icon name="lock" size={11} /> Finalized &amp; locked
+        </span>;
     }
     if (requiresVerification) {
       return (
         <span className="status-badge-studio status-pending">
-          ⚠ Pending Verification
+          <Icon name="warn" size={11} /> Pending verification
         </span>
       );
     }
-    return <span className="status-badge-studio status-ready">● Design Ready</span>;
+    return <span className="status-badge-studio status-ready">Design ready</span>;
   };
 
   const formattedStyles =
@@ -108,7 +111,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
       {/* Top Bar: Workflow Stepper & Global Controls */}
       <div className="header-workflow-bar">
         {/* Workflow Stepper */}
-        <div className="workflow-stepper" role="navigation" aria-label="Planning Workflow Steps">
+        <div className="workflow-stepper" role="navigation" aria-label="Planning workflow">
           <button
             type="button"
             className={`step-item ${
@@ -136,7 +139,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             <span className="step-num">2</span>
             <div className="step-meta">
               <span className="step-title">Design</span>
-              <span className="step-desc">Feasible 2D Plan</span>
+              <span className="step-desc">Feasible plan</span>
             </div>
           </button>
           <span className="step-arrow">→</span>
@@ -181,13 +184,11 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               className="btn-header-save"
               onClick={onSaveProject}
               title="Save current project to local storage"
-            >
-              Save Project
-            </button>
+            >Save project</button>
           )}
 
           {/* Theme Selector (Light / Dark / System) */}
-          <div className="theme-toggle-cluster" role="radiogroup" aria-label="Appearance Mode">
+          <div className="theme-toggle-cluster" role="radiogroup" aria-label="Appearance">
             <button
               type="button"
               className={`btn-theme-pill ${theme === "light" ? "active" : ""}`}
@@ -196,7 +197,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               aria-checked={theme === "light"}
               role="radio"
             >
-              ☀ Light
+              <Icon name="sun" size={12} /> Light
             </button>
             <button
               type="button"
@@ -206,7 +207,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               aria-checked={theme === "dark"}
               role="radio"
             >
-              🌙 Dark
+              <Icon name="moon" size={12} /> Dark
             </button>
             <button
               type="button"
@@ -216,7 +217,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               aria-checked={theme === "system"}
               role="radio"
             >
-              💻 Auto
+              <Icon name="monitor" size={12} /> Auto
             </button>
           </div>
 
@@ -225,7 +226,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               type="button"
               className="btn-header-help"
               onClick={onOpenHelp}
-              title="Architecture & Help Guide"
+              title="How this works"
               aria-label="Help and documentation"
             >
               ? Help
@@ -247,7 +248,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             <span className="attr-dim">{roomDimensionsDisplay}</span>
             <span className="dot-sep">•</span>
             <span className="attr-budget">
-              {budget !== null ? `Budget: ${formatMoney(budget, currency)}` : "No Budget Cap"}
+              {budget !== null ? `Budget: ${formatMoney(budget, currency)}` : "No budget cap"}
             </span>
             <span className="dot-sep">•</span>
             <span className="attr-style">{formattedStyles}</span>
@@ -261,12 +262,12 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               {catalogSize > 0 ? `${catalogSize} catalog products · illustrative` : "Catalog unavailable"}
             </span>
             <span className="dot-sep">•</span>
-            <span style={{ fontSize: "0.72rem", color: llmAvailable ? "#166534" : "var(--ink-faint)" }}>
-              AI {llmAvailable ? "Active" : "Off"}
+            <span className={`service-flag${llmAvailable ? " is-on" : ""}`}>
+              AI {llmAvailable ? "on" : "off"}
             </span>
             <span className="dot-sep">•</span>
-            <span style={{ fontSize: "0.72rem", color: visionAvailable ? "#166534" : "var(--ink-faint)" }}>
-              Vision {visionAvailable ? "Active" : "Off"}
+            <span className={`service-flag${visionAvailable ? " is-on" : ""}`}>
+              Vision {visionAvailable ? "on" : "off"}
             </span>
           </div>
         </div>
@@ -279,7 +280,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             onClick={onOpenInspiration}
             title="Curate architectural styles and materials"
           >
-            <span>✨</span> Inspiration
+            <Icon name="spark" size={14} /> Inspiration
           </button>
 
           <div className="version-pill-group">
@@ -287,9 +288,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               type="button"
               className={`version-pill-btn ${activeVersion === "v1" ? "active" : ""}`}
               onClick={() => onSelectVersion("v1")}
-            >
-              V1 Baseline
-            </button>
+            >V1 baseline</button>
             <button
               type="button"
               className={`version-pill-btn ${activeVersion === "v2" ? "active" : ""}`}
@@ -297,7 +296,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
               disabled={!hasV2}
               title={!hasV2 ? "Create a change in DesignPulse to unlock V2" : "View Version 2"}
             >
-              {hasV2 ? "● V2 Active" : "V2 (Unmodified)"}
+              {hasV2 ? "V2 active" : "V2 (unmodified)"}
             </button>
           </div>
 
@@ -316,7 +315,7 @@ export const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
             type="button"
             className="btn-context-action btn-context-primary"
             onClick={onOpenExport}
-            title="Export Architectural Packages & Dealer BOM"
+            title="Export packages & dealer BOM"
           >
             Export BOM
           </button>

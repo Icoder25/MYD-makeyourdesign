@@ -20,7 +20,7 @@ export function VersionDiffPanel({ diff, v1State, v2State }: Props) {
   return (
     <section className="panel diff-panel">
       <div className="diff-header">
-        <h2>Version Transition Diff</h2>
+        <h2>What changed between versions</h2>
         <span className="version-tag">
           {diff.from_version.toUpperCase()} → {diff.to_version.toUpperCase()}
         </span>
@@ -51,7 +51,7 @@ export function VersionDiffPanel({ diff, v1State, v2State }: Props) {
         <div className="transition-box active-ver-box">
           <span className="trans-ver">VERSION {diff.to_version.toUpperCase()} (ACTIVE)</span>
           <span className="trans-val">
-            {v2Price !== undefined ? formatMoney(v2Price) : "New Design"}
+            {v2Price !== undefined ? formatMoney(v2Price) : "New design"}
           </span>
         </div>
       </div>
@@ -59,7 +59,7 @@ export function VersionDiffPanel({ diff, v1State, v2State }: Props) {
       {/* Fixture Changes (Added, Removed, Modified) */}
       <div className="diff-grid">
         <div className="diff-col">
-          <h4>MODIFIED FIXTURES</h4>
+          <h4>Changed</h4>
           {diff.modified_categories.length > 0 ? (
             <ul className="diff-list">
               {diff.modified_categories.map((cat) => (
@@ -74,7 +74,7 @@ export function VersionDiffPanel({ diff, v1State, v2State }: Props) {
         </div>
 
         <div className="diff-col added-col">
-          <h4>ADDED FIXTURES</h4>
+          <h4>Added</h4>
           {diff.added_products.length > 0 ? (
             <ul className="diff-list">
               {diff.added_products.map((p) => (
@@ -93,7 +93,7 @@ export function VersionDiffPanel({ diff, v1State, v2State }: Props) {
         </div>
 
         <div className="diff-col removed-col">
-          <h4>REMOVED FIXTURES</h4>
+          <h4>Removed</h4>
           {diff.removed_products.length > 0 ? (
             <ul className="diff-list">
               {diff.removed_products.map((p) => (
@@ -114,7 +114,7 @@ export function VersionDiffPanel({ diff, v1State, v2State }: Props) {
 
       {/* Decision Memory Rationale */}
       <div className="diff-rationale-box">
-        <span className="rationale-label">ARCHITECTURAL DECISION MEMORY:</span>
+        <span className="rationale-label">Why this changed</span>
         <p className="rationale-text">&ldquo;{rationale}&rdquo;</p>
       </div>
     </section>

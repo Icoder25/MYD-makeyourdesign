@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useEscapeToClose } from "../useEscapeToClose";
 import { api, formatMoney } from "../api";
+import { Icon } from "./Icon";
 import type {
   ClientExportData,
   DealerExportData,
@@ -78,13 +79,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       >
         <div className="modal-header">
           <div>
-            <span className="badge-luxury">AUDITABLE ARCHITECTURAL EXPORT</span>
-            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>
-              Project Specification & BOM Packages
-            </h2>
+            <span className="badge-luxury">Export</span>
+            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>Specification & BOM packages</h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
@@ -102,16 +101,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             type="button"
             className={role === "client" ? "btn-chip active" : "btn-chip"}
             onClick={() => setRole("client")}
-          >
-            Client Presentation
-          </button>
+          >Client presentation</button>
           <button
             type="button"
             className={role === "designer" ? "btn-chip active" : "btn-chip"}
             onClick={() => setRole("designer")}
-          >
-            Designer Architectural Spec
-          </button>
+          >Designer specification</button>
           <button
             type="button"
             className={role === "dealer" ? "btn-chip active" : "btn-chip"}
@@ -145,7 +140,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 >
                   <div>
                     <span style={{ fontSize: "11px", color: "var(--ink-500)", textTransform: "uppercase" }}>
-                      ESTIMATED INVESTMENT
+                      Estimated investment
                     </span>
                     <div style={{ fontSize: "24px", fontWeight: 700, color: "var(--ink-900)" }}>
                       {formatMoney(clientData.total_investment, clientData.currency)}
@@ -154,9 +149,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   {clientData.water_litres_saved_annually && (
                     <div style={{ textAlign: "right" }}>
                       <span style={{ fontSize: "11px", color: "var(--ink-500)", textTransform: "uppercase" }}>
-                        WATER CONSERVATION
+                        Water saved
                       </span>
-                      <div style={{ fontSize: "20px", fontWeight: 700, color: "#15803d" }}>
+                      <div style={{ fontSize: "20px", fontWeight: 700, color: "var(--ok)" }}>
                         {clientData.water_litres_saved_annually.toLocaleString()} L / yr
                       </div>
                     </div>
@@ -173,7 +168,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       <th>Fixture</th>
                       <th>Category</th>
                       <th>Tier</th>
-                      <th style={{ textAlign: "right" }}>List Price</th>
+                      <th style={{ textAlign: "right" }}>List price</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,16 +194,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             {role === "designer" && designerData && (
               <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                 <div>
-                  <h4 style={{ margin: "0 0 8px", fontSize: "13px", color: "var(--ink-800)" }}>
-                    Verified Clearances & Wall Anchors
-                  </h4>
+                  <h4 style={{ margin: "0 0 8px", fontSize: "13px", color: "var(--ink-800)" }}>Clearances & wall anchors</h4>
                   <table className="table" style={{ width: "100%", fontSize: "12px" }}>
                     <thead>
                       <tr>
                         <th>Product</th>
                         <th>Wall</th>
                         <th>Footprint</th>
-                        <th>Required Clearance</th>
+                        <th>Required clearance</th>
                         <th>Standard</th>
                       </tr>
                     </thead>
@@ -227,9 +220,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </div>
 
                 <div>
-                  <h4 style={{ margin: "12px 0 8px", fontSize: "13px", color: "var(--ink-800)" }}>
-                    Audit Decision Memory Log
-                  </h4>
+                  <h4 style={{ margin: "12px 0 8px", fontSize: "13px", color: "var(--ink-800)" }}>Decision log</h4>
                   <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                     {designerData.decision_records.length === 0 ? (
                       <div style={{ fontSize: "12px", color: "var(--ink-500)", fontStyle: "italic" }}>
@@ -275,7 +266,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     onClick={handleCopyBOM}
                     style={{ fontSize: "11px", padding: "4px 10px" }}
                   >
-                    {copied ? "✓ Copied Tab-Delimited!" : "Copy Schedule to Clipboard"}
+                    {copied ? "Copied — tab-delimited" : "Copy schedule to clipboard"}
                   </button>
                 </div>
 
@@ -289,7 +280,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       <th>Qty</th>
                       <th>Rough-In</th>
                       <th>Electrical</th>
-                      <th style={{ textAlign: "right" }}>Unit Price</th>
+                      <th style={{ textAlign: "right" }}>Unit price</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -298,14 +289,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         <td>{item.item_number}</td>
                         <td style={{ fontWeight: 600, color: "var(--primary-deep)" }}>{item.kohler_family}</td>
                         <td>
-                          <code style={{ fontSize: "11px", background: "#f1f5f9", padding: "2px 4px", borderRadius: "3px" }}>
+                          <code style={{ fontSize: "11px", background: "var(--paper-deep)", padding: "2px 4px", borderRadius: "3px" }}>
                             {item.sku}
                           </code>
                         </td>
                         <td>{item.product_name}</td>
                         <td>{item.quantity}</td>
                         <td>{item.rough_in_in ? `${item.rough_in_in}"` : "—"}</td>
-                        <td>{item.electrical_required ? "⚡ Required" : "No"}</td>
+                        <td>{item.electrical_required ? "Required" : "No"}</td>
                         <td style={{ textAlign: "right", fontWeight: 600 }}>
                           {formatMoney(item.unit_price, item.currency)}
                         </td>
@@ -339,7 +330,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               Close
             </button>
             <button className="btn-primary" onClick={handlePrintableOpen}>
-              Open Standalone Printable Spec ↗
+              Open standalone printable spec <Icon name="external" size={13} />
             </button>
           </div>
         </div>

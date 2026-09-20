@@ -2,6 +2,7 @@ import React from "react";
 import { formatMoney } from "../api";
 import type { Product } from "../types";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon, categoryIcon } from "./Icon";
 
 interface ProductInspectorDrawerProps {
   product: Product | null;
@@ -60,7 +61,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
             onClick={onClose}
             aria-label="Close inspector"
           >
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
@@ -75,7 +76,9 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
               {product.price !== null ? formatMoney(product.price, currency) : "Price on request"}
             </span>
             <span
-              className="inspector-verified-badge"
+              className={`inspector-verified-badge${
+                product.price_status === "illustrative" ? " is-illustrative" : ""
+              }`}
               title={
                 product.price_status === "illustrative"
                   ? "This price is a prototype placeholder, not a KOHLER quotation."
@@ -84,7 +87,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
             >
               {product.price_status === "illustrative"
                 ? "≈ Illustrative price"
-                : "✓ Confirmed price"}
+                : "Confirmed price"}
             </span>
           </div>
         </div>
@@ -93,15 +96,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
         <div className="inspector-visual-card">
           <div className="visual-silhouette">
             <span className="visual-icon">
-              {product.category === "toilet" || product.category === "smart_toilet"
-                ? "🚽"
-                : product.category === "shower" || product.category === "smart_shower"
-                ? "🚿"
-                : product.category === "vanity"
-                ? "🪞"
-                : product.category === "bathtub"
-                ? "🛁"
-                : "🚰"}
+              <Icon name={categoryIcon(product.category)} size={46} />
             </span>
             <span className="visual-label">{product.name}</span>
           </div>
@@ -110,13 +105,13 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
         {/* Technical & Installation Specifications */}
         <div className="inspector-section">
           <h4 className="inspector-section-title">
-            {userRole === "designer" ? "ENGINEERING & ROUGH-IN SPECS" : "KEY DIMENSIONS & NEEDS"}
+            {userRole === "designer" ? "Rough-in & engineering" : "Dimensions & requirements"}
           </h4>
 
           <div className="inspector-specs-grid">
             {/* Dimensions */}
             <div className="spec-cell">
-              <span className="spec-cell-label">DIMENSIONS</span>
+              <span className="spec-cell-label">Dimensions</span>
               <span className="spec-cell-value">
                 {widthIn}″W × {depthIn}″D{heightIn ? ` × ${heightIn}″H` : ""}
               </span>
@@ -129,9 +124,9 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
 
             {/* Electrical */}
             <div className="spec-cell">
-              <span className="spec-cell-label">ELECTRICAL POWER</span>
+              <span className="spec-cell-label">Electrical power</span>
               <span className="spec-cell-value">
-                {product.electrical_required ? "120V GFCI Required" : "No Power Needed"}
+                {product.electrical_required ? "120V GFCI Required" : "No power needed"}
               </span>
               <span className="spec-cell-sub">
                 {product.electrical_required
@@ -144,7 +139,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
 
             {/* Water Efficiency */}
             <div className="spec-cell">
-              <span className="spec-cell-label">WATER CONSUMPTION</span>
+              <span className="spec-cell-label">Water use</span>
               <span className="spec-cell-value">
                 {product.water.flow_rate_gpm
                   ? `${product.water.flow_rate_gpm} GPM`
@@ -153,15 +148,15 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
                   : "N/A (Dry Fixture)"}
               </span>
               <span className="spec-cell-sub">
-                {isWatersense ? "💧 EPA WaterSense Eligible" : "Standard flow compliance"}
+                {isWatersense ? "EPA WaterSense eligible" : "Standard flow compliance"}
               </span>
             </div>
 
             {/* Smart Technology */}
             <div className="spec-cell">
-              <span className="spec-cell-label">SMART CONNECTIVITY</span>
+              <span className="spec-cell-label">Connectivity</span>
               <span className="spec-cell-value">
-                {hasSmart ? "KOHLER Konnect™" : "Standard Manual"}
+                {hasSmart ? "KOHLER Konnect™" : "Manual"}
               </span>
               <span className="spec-cell-sub">
                 {hasSmart
@@ -178,7 +173,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
           <div className="inspector-verification-card">
             {product.electrical_required && (
               <div className="verify-bullet">
-                <span className="bullet-icon">⚡</span>
+                <Icon name="plug" size={13} className="bullet-icon" />
                 <span className="bullet-text">
                   {userRole === "designer"
                     ? "Verify GFCI outlet position complies with wet-zone local code setback."
@@ -187,7 +182,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
               </div>
             )}
             <div className="verify-bullet">
-              <span className="bullet-icon">📏</span>
+              <Icon name="ruler" size={13} className="bullet-icon" />
               <span className="bullet-text">
                 {userRole === "designer"
                   ? "Requires minimum 21″ front clear floor space per IRC R307.1."
@@ -195,7 +190,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
               </span>
             </div>
             <div className="verify-bullet">
-              <span className="bullet-icon">🔧</span>
+              <Icon name="wrench" size={13} className="bullet-icon" />
               <span className="bullet-text">
                 {userRole === "designer"
                   ? "Standard plumbing wall rough-in inspection required prior to close-in."
@@ -215,7 +210,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
               onReplace(product);
             }}
           >
-            <span>🔄</span> Swap with Alternative
+            <Icon name="refresh" size={14} /> Swap with alternative
           </button>
           <button
             type="button"
@@ -224,9 +219,7 @@ export const ProductInspectorDrawer: React.FC<ProductInspectorDrawerProps> = ({
               onClose();
               onOpenCatalog(product.category);
             }}
-          >
-            Browse in Catalog
-          </button>
+          >Browse the catalog</button>
         </div>
       </div>
     </div>

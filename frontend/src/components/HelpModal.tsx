@@ -1,5 +1,6 @@
 import React from "react";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon } from "./Icon";
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -29,13 +30,15 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             </h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
         <div className="help-content-scrollable">
           <section className="help-section">
-            <h3 className="help-heading">📐 The 4-Step Professional Workflow</h3>
+            <h3 className="help-heading">
+          <Icon name="plan" size={15} /> The four-step professional workflow
+        </h3>
             <div className="workflow-help-grid">
               <div className="workflow-step-card">
                 <strong>1. Brief</strong>
@@ -57,7 +60,9 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
           </section>
 
           <section className="help-section">
-            <h3 className="help-heading">⚡ DesignPulse™ Consequence Engine</h3>
+            <h3 className="help-heading">
+          <Icon name="pulse" size={15} /> DesignPulse™ consequence engine
+        </h3>
             <p className="help-text">
               Traditional CAD tools require you to manually reposition every fixture when changing a layout. DesignPulse
               calculates the exact ripple effect of any alteration:
@@ -76,16 +81,20 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
           </section>
 
           <section className="help-section">
-            <h3 className="help-heading">🏛 Spatial Intent vs Visualization Aids</h3>
+            <h3 className="help-heading">
+          <Icon name="studio" size={15} /> Spatial intent vs visualisation aids
+        </h3>
             <p className="help-text">
-              <strong>The 2D Plan</strong> represents strict engineering geometry and code-required clear floor spaces.
+              <strong>The 2D plan</strong> represents strict engineering geometry and code-required clear floor spaces.
               <strong> 3D, 360°, and AR</strong> are visualization aids to help you imagine materials and finishes. We never
               substitute visual rendering for engineering verification.
             </p>
           </section>
 
           <section className="help-section">
-            <h3 className="help-heading">⌨ Keyboard &amp; Accessibility Shortcuts</h3>
+            <h3 className="help-heading">
+          <Icon name="keyboard" size={15} /> Keyboard &amp; accessibility shortcuts
+        </h3>
             <div className="shortcuts-grid">
               <div className="shortcut-row">
                 <kbd>Esc</kbd>
@@ -96,21 +105,19 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 <span>Navigate through interactive fixtures &amp; controls</span>
               </div>
               <div className="shortcut-row">
-                <kbd>Mouse Drag</kbd>
+                <kbd>Mouse drag</kbd>
                 <span>Orbit 3D camera angle</span>
               </div>
               <div className="shortcut-row">
-                <kbd>Scroll Wheel</kbd>
-                <span>Zoom 2D Plan and 3D Canvas</span>
+                <kbd>Scroll wheel</kbd>
+                <span>Zoom the plan and the 3D room</span>
               </div>
             </div>
           </section>
         </div>
 
         <div className="modal-footer" style={{ marginTop: "14px" }}>
-          <button type="button" className="primary" onClick={onClose}>
-            Got It
-          </button>
+          <button type="button" className="primary" onClick={onClose}>Got it</button>
         </div>
       </div>
     </div>

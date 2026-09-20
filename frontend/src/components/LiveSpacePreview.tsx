@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { DesignState, PlacedFixture } from "../types";
+import { Icon } from "./Icon";
 
 /** How far the reserved clear floor projects off the wall, in inches.
  *
@@ -75,14 +76,12 @@ export const LiveSpacePreview: React.FC<LiveSpacePreviewProps> = ({
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span className="badge-luxury">VALIDATED SPATIAL PREVIEW</span>
+            <span className="badge-luxury">Checked against the plan</span>
             <span style={{ fontSize: "11px", color: "var(--ink-500)" }}>
               Version {state.version_id.toUpperCase()} · {roomW.toFixed(1)}′ × {roomL.toFixed(1)}′
             </span>
           </div>
-          <h3 style={{ margin: "4px 0 0", fontSize: "16px", color: "var(--ink-900)" }}>
-            Architectural Elevation & Clearance Engine
-          </h3>
+          <h3 style={{ margin: "4px 0 0", fontSize: "16px", color: "var(--ink-900)" }}>Elevations & clearances</h3>
         </div>
 
         <div style={{ display: "flex", gap: "6px" }}>
@@ -97,16 +96,12 @@ export const LiveSpacePreview: React.FC<LiveSpacePreviewProps> = ({
             type="button"
             className={viewMode === "clearance_overlay" ? "btn-chip active" : "btn-chip"}
             onClick={() => setViewMode("clearance_overlay")}
-          >
-            Clearance Envelopes
-          </button>
+          >Clearance envelopes</button>
           <button
             type="button"
             className={viewMode === "photo_perspective" ? "btn-chip active" : "btn-chip"}
             onClick={() => setViewMode("photo_perspective")}
-          >
-            Photo Perspective
-          </button>
+          >Photo perspective</button>
         </div>
       </div>
 
@@ -153,8 +148,8 @@ export const LiveSpacePreview: React.FC<LiveSpacePreviewProps> = ({
             }}
           >
             <div style={{ fontSize: "11px", color: "var(--ink-500)", marginBottom: "12px", display: "flex", justifyContent: "space-between" }}>
-              <span>WALL ELEVATION: <strong style={{ textTransform: "uppercase" }}>{selectedWall}</strong> ({wallLengthFt.toFixed(1)} FT RUN)</span>
-              <span>SCALE: 1:1 COMPUTATIONAL SOLVER</span>
+              <span>Wall elevation · <strong>{selectedWall}</strong> · {wallLengthFt.toFixed(1)} ft run</span>
+              <span>Scale 1:1 · from the solver</span>
             </div>
 
             {fixturesByWall[selectedWall].length === 0 ? (
@@ -209,9 +204,7 @@ export const LiveSpacePreview: React.FC<LiveSpacePreviewProps> = ({
       {/* Mode 2: Clearance Envelopes */}
       {viewMode === "clearance_overlay" && (
         <div style={{ background: "var(--surface-sunken, #f8fafc)", padding: "16px", borderRadius: "6px", border: "1px solid var(--border-light)" }}>
-          <h4 style={{ margin: "0 0 4px", fontSize: "13px", color: "var(--ink-800)" }}>
-            Computed Clearances
-          </h4>
+          <h4 style={{ margin: "0 0 4px", fontSize: "13px", color: "var(--ink-800)" }}>Computed clearances</h4>
           <p style={{ margin: "0 0 10px", fontSize: "11px", color: "var(--ink-600)" }}>
             Every figure below is the envelope the layout solver reserved for that fixture, with the
             rule it came from. Spatial verdict for this design:{" "}
@@ -271,16 +264,12 @@ export const LiveSpacePreview: React.FC<LiveSpacePreviewProps> = ({
         <div style={{ background: "var(--surface-sunken, #f8fafc)", padding: "16px", borderRadius: "6px", border: "1px solid var(--border-light)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
             <div>
-              <h4 style={{ margin: 0, fontSize: "14px", color: "var(--ink-900)" }}>
-                Bathroom Existing Condition Overlay
-              </h4>
+              <h4 style={{ margin: 0, fontSize: "14px", color: "var(--ink-900)" }}>Existing condition overlay</h4>
               <p style={{ margin: "2px 0 0", fontSize: "12px", color: "var(--ink-600)" }}>
                 Ground the solved DesignState geometry against real customer site photographs.
               </p>
             </div>
-            <label className="btn-secondary" style={{ cursor: "pointer", fontSize: "12px", padding: "6px 12px" }}>
-              Upload Site Photo
-              <input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
+            <label className="btn-secondary" style={{ cursor: "pointer", fontSize: "12px", padding: "6px 12px" }}>Upload a site photo<input type="file" accept="image/*" onChange={handleFileChange} style={{ display: "none" }} />
             </label>
           </div>
 
@@ -312,7 +301,9 @@ export const LiveSpacePreview: React.FC<LiveSpacePreviewProps> = ({
             >
               {!uploadedImageUrl && (
                 <div style={{ color: "var(--ink-500)", textAlign: "center", maxWidth: "340px", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "28px", marginBottom: "6px" }}>📷</div>
+                  <div style={{ marginBottom: "6px", opacity: 0.5 }}>
+                <Icon name="camera" size={26} />
+              </div>
                   <strong>No site photo uploaded yet</strong>
                   <div style={{ fontSize: "11px", marginTop: "4px" }}>
                     Upload a room photo to see the selected fixtures listed against your actual space.

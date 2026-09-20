@@ -1,4 +1,5 @@
 import React from "react";
+import { Icon, type IconName } from "./Icon";
 
 export type NavRoute =
   | "new_project"
@@ -33,41 +34,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: {
     id: NavRoute;
     label: string;
-    icon: string;
+    icon: IconName;
     badge?: string | number;
     description: string;
     requiresPlan?: boolean;
   }[] = [
     {
       id: "new_project",
-      label: hasActivePlan ? "Active Project" : "New Project",
-      icon: "📐",
+      label: hasActivePlan ? "Active project" : "New project",
+      icon: "plan",
       description: "Room brief & spatial geometry",
     },
     {
       id: "my_designs",
-      label: "My Designs",
-      icon: "🗂",
+      label: "My designs",
+      icon: "folder",
       badge: savedDesignsCount > 0 ? savedDesignsCount : undefined,
       description: "Saved bathroom concepts",
     },
     {
       id: "inspiration",
       label: "Inspiration",
-      icon: "✨",
+      icon: "spark",
       description: "KOHLER style directions",
     },
     {
       id: "catalog",
-      label: "Product Catalog",
-      icon: "📦",
+      label: "Product catalog",
+      icon: "box",
       badge: catalogCount > 0 ? `${catalogCount}` : undefined,
       description: "Fixtures & fittings",
     },
     {
       id: "designpulse",
       label: "DesignPulse™",
-      icon: "⚡",
+      icon: "pulse",
       badge: "AI",
       description: "Change consequence engine",
       requiresPlan: true,
@@ -75,33 +76,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       id: "sustainability",
       label: "Sustainability",
-      icon: "💧",
+      icon: "drop",
       description: "Water & energy intelligence",
       requiresPlan: true,
     },
     {
       id: "export",
-      label: "Export & Share",
-      icon: "📄",
+      label: "Export & share",
+      icon: "doc",
       description: "Client & Dealer BOM packages",
       requiresPlan: true,
     },
   ];
 
   return (
-    <aside className="app-sidebar" aria-label="Main Navigation">
+    <aside className="app-sidebar" aria-label="Main navigation">
       {/* Brand Header */}
       <div className="sidebar-brand-header">
         <div className="brand-badge-sidebar">
           <div className="brand-logo-text">KOHLER</div>
-          <div className="brand-sub-text">AI BATHPLAN</div>
+          <div className="brand-rule" aria-hidden="true" />
+          <div className="brand-sub-text">AI BathPlan</div>
         </div>
-        <p className="sidebar-tagline">Imagine. Plan. Live Better.</p>
+        <p className="sidebar-tagline">Imagine. Plan. Live better.</p>
       </div>
 
       {/* Main Navigation */}
       <nav className="sidebar-nav">
-        <div className="sidebar-section-label">WORKSPACE</div>
+        <div className="sidebar-section-label">Workspace</div>
         <ul className="sidebar-menu">
           {navItems.map((item) => {
             const isActive = activeRoute === item.id;
@@ -119,7 +121,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   title={isDisabled ? "Generate a plan to unlock this tool" : item.description}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <span className="sidebar-nav-icon">{item.icon}</span>
+                  <span className="sidebar-nav-icon">
+                    <Icon name={item.icon} size={17} />
+                  </span>
                   <div className="sidebar-nav-text">
                     <span className="sidebar-nav-label">{item.label}</span>
                     <span className="sidebar-nav-sub">{item.description}</span>
@@ -145,12 +149,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Role Toggle Switcher */}
         <div className="role-switch-container">
           <div className="role-switch-header">
-            <span className="role-label-title">PLANNING EXPERIENCE</span>
+            <span className="role-label-title">Planning experience</span>
             <span className="role-current-badge">
               {userRole === "homeowner" ? "Homeowner" : "Architect / Designer"}
             </span>
           </div>
-          <div className="role-toggle-pills" role="radiogroup" aria-label="Experience Mode">
+          <div className="role-toggle-pills" role="radiogroup" aria-label="Experience mode">
             <button
               type="button"
               className={`role-pill-btn ${userRole === "homeowner" ? "selected" : ""}`}
@@ -182,8 +186,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* System Meta */}
         <div className="sidebar-system-meta">
           <div className="system-status-indicator">
-            <span className="system-dot" />
-            <span className="system-text">Verified Deterministic Solver</span>
+            <span className="system-dot" aria-hidden="true" />
+            <span className="system-text">Deterministic solver</span>
           </div>
           <div className="system-version">KOHLER Studio · v1.0 Production</div>
         </div>

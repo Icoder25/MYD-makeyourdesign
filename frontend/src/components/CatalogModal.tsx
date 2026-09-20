@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api, formatMoney } from "../api";
 import type { Product } from "../types";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon } from "./Icon";
 
 interface CatalogModalProps {
   isOpen: boolean;
@@ -71,19 +72,17 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="KOHLER Product Catalog Browser"
+        aria-label="Product catalog"
         style={{ maxWidth: "980px", width: "95vw" }}
       >
         {/* Modal Header */}
         <div className="modal-header">
           <div>
-            <span className="badge-luxury">VERIFIED PRODUCT SPECIFICATION</span>
-            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>
-              KOHLER Product Catalog Explorer
-            </h2>
+            <span className="badge-luxury">Specification</span>
+            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>The catalog</h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
@@ -114,7 +113,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
               onChange={(e) => setSelectedCategory(e.target.value)}
               aria-label="Filter by category"
             >
-              <option value="all">All Categories ({products.length})</option>
+              <option value="all">All categories ({products.length})</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat.replace(/_/g, " ").toUpperCase()}
@@ -129,7 +128,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
               onChange={(e) => setSelectedTier(e.target.value)}
               aria-label="Filter by tier"
             >
-              <option value="all">All Tiers</option>
+              <option value="all">All tiers</option>
               <option value="essential">Essential</option>
               <option value="standard">Standard</option>
               <option value="premium">Premium</option>
@@ -158,9 +157,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
                     setSelectedTier("all");
                     setSearchQuery("");
                   }}
-                >
-                  Reset Filters
-                </button>
+                >Reset filters</button>
               </div>
             ) : (
               <div className="catalog-grid">
@@ -193,12 +190,12 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
                         <div className="card-spec-badges">
                           {p.water.watersense_eligible && (
                             <span className="spec-pill pill-eco" title="WaterSense">
-                              💧 Eco
+                              <Icon name="drop" size={11} /> Eco
                             </span>
                           )}
                           {p.electrical_required && (
                             <span className="spec-pill pill-electric" title="120V GFCI required">
-                              ⚡ GFCI
+                              <Icon name="plug" size={11} /> GFCI
                             </span>
                           )}
                           {p.smart.features.length > 0 && (
@@ -223,9 +220,7 @@ export const CatalogModal: React.FC<CatalogModalProps> = ({
                               onClose();
                             }}
                             title="Evaluate impact of swapping this fixture via DesignPulse"
-                          >
-                            Swap into Design
-                          </button>
+                          >Swap in</button>
                         )}
                       </div>
                     </div>

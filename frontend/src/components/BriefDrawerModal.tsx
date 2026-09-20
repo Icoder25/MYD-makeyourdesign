@@ -2,6 +2,7 @@ import React from "react";
 import { useEscapeToClose } from "../useEscapeToClose";
 import { BriefForm } from "./BriefForm";
 import type { PlanRequest } from "../api";
+import { Icon } from "./Icon";
 
 interface BriefDrawerModalProps {
   isOpen: boolean;
@@ -41,7 +42,7 @@ export const BriefDrawerModal: React.FC<BriefDrawerModalProps> = ({
             </h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 

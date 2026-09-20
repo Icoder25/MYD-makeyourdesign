@@ -1,25 +1,26 @@
 import React, { useState } from "react";
 import { formatMoney } from "../api";
 import type { ConstraintLedger, LedgerStatus } from "../types";
+import { Icon, type IconName } from "./Icon";
 
-const DOMAIN_ICONS: Record<string, string> = {
-  space: "📐",
-  budget: "💰",
-  compatibility: "🔗",
-  installation: "🔧",
-  style: "🎨",
-  water: "💧",
-  verification: "📋",
+const DOMAIN_ICONS: Record<string, IconName> = {
+  space: "plan",
+  budget: "money",
+  compatibility: "link",
+  installation: "wrench",
+  style: "palette",
+  water: "drop",
+  verification: "clipboard",
 };
 
 const DOMAIN_LABELS: Record<string, string> = {
-  space: "SPACE & CLEARANCE",
-  budget: "BUDGET FEASIBILITY",
-  compatibility: "FIXTURE INTERFACES",
-  installation: "ROUGH-IN & POWER",
-  style: "AESTHETIC FINISH",
-  water: "WATER CONSERVATION",
-  verification: "FIELD VERIFICATION",
+  space: "Space & clearance",
+  budget: "Budget feasibility",
+  compatibility: "Fixture interfaces",
+  installation: "Rough-in & power",
+  style: "Aesthetic finish",
+  water: "Water conservation",
+  verification: "Field verification",
 };
 
 interface PersistentLedgerDockProps {
@@ -54,14 +55,14 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
     "verification",
   ];
 
-  const getStatusIcon = (status: LedgerStatus) => {
+  const getStatusIcon = (status: LedgerStatus): IconName => {
     switch (status) {
-      case "pass":
-        return "✓";
       case "warning":
-        return "⚠";
+        return "warn";
       case "fail":
-        return "✗";
+        return "cross";
+      default:
+        return "check";
     }
   };
 
@@ -74,15 +75,19 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
   const getOverallVerdict = () => {
     switch (ledger.overall_status) {
       case "feasible":
-        return <span className="dock-overall dock-feasible">✓ Feasible</span>;
+        return <span className="dock-overall dock-feasible">
+        <Icon name="check" size={12} /> Feasible
+      </span>;
       case "feasible_pending_verification":
         return (
           <span className="dock-overall dock-pending">
-            ⚠ Feasible ({verificationCount > 0 ? `${verificationCount} to verify` : "Pending verification"})
+            <Icon name="warn" size={12} /> Feasible ({verificationCount > 0 ? `${verificationCount} to verify` : "pending verification"})
           </span>
         );
       case "infeasible":
-        return <span className="dock-overall dock-infeasible">✗ Infeasible (Needs Trade-off)</span>;
+        return <span className="dock-overall dock-infeasible">
+        <Icon name="cross" size={12} /> Infeasible — needs a trade-off
+      </span>;
       default:
         return null;
     }
@@ -97,7 +102,7 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
       <div className="dock-bar-inner">
         <div className="dock-domains-row">
           <div className="dock-brand-label">
-            <span className="dock-title-badge">DECISION LEDGER</span>
+            <span className="dock-title-badge">Decision ledger</span>
             <span className="dock-truth-hint">
               {totalPrice !== undefined ? `${formatMoney(totalPrice, currency)} · ` : ""}
               {userRole === "designer"
@@ -131,9 +136,9 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
                   title={`${DOMAIN_LABELS[key]}: ${entry.summary}`}
                   aria-expanded={isSelected}
                 >
-                  <span className="pill-icon">{DOMAIN_ICONS[key]}</span>
-                  <span className="pill-label">{key.toUpperCase()}</span>
-                  <span className="pill-status">{getStatusIcon(entry.status)}</span>
+                  <Icon className="pill-icon" name={DOMAIN_ICONS[key]} size={12} />
+                  <span className="pill-label">{key}</span>
+                  <Icon className="pill-status" name={getStatusIcon(entry.status)} size={11} />
                 </button>
               );
             })}
@@ -153,7 +158,15 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
             }}
             aria-label={isExpanded ? "Collapse ledger sheet" : "Expand ledger sheet"}
           >
-            {isExpanded ? "Collapse ▲" : "Inspect Checks ▼"}
+            {isExpanded ? (
+          <>
+            Collapse <Icon name="caretUp" size={10} />
+          </>
+        ) : (
+          <>
+            Inspect checks <Icon name="caretDown" size={10} />
+          </>
+        )}
           </button>
 
           <button
@@ -162,7 +175,7 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
             onClick={onOpenFinalize}
             title={isFinalized ? "Design specification is finalized" : "Review verification items and finalize"}
           >
-            <span>{isFinalized ? "🔒" : "📋"}</span>
+            <Icon name={isFinalized ? "lock" : "clipboard"} size={12} />
             {isFinalized ? "Finalized" : "Finalize"}
           </button>
         </div>
@@ -170,13 +183,19 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
 
       {/* Expandable Check Sheet Drawer */}
       {isExpanded && (
-        <div className="dock-drawer-content" role="region" aria-label="Expanded Verification Details">
+        <div className="dock-drawer-content" role="region" aria-label="Verification detail">
           {/* Trust Legend */}
           <div className="dock-trust-legend">
-            <span className="legend-head">AUDIT PROVENANCE &amp; TRUST LABELS:</span>
-            <span className="legend-tag tag-confirmed">✓ Confirmed (User Input)</span>
-            <span className="legend-tag tag-observed">◌ Observed (Vision Analysis)</span>
-            <span className="legend-tag tag-estimated">≈ Estimated (Deterministic Inference)</span>
+            <span className="legend-head">Provenance</span>
+            <span className="legend-tag tag-confirmed">
+              <Icon name="check" size={11} /> Confirmed — your input
+            </span>
+            <span className="legend-tag tag-observed">
+              <Icon name="eye" size={11} /> Observed — vision analysis
+            </span>
+            <span className="legend-tag tag-estimated">
+              ≈ Estimated — deterministic inference
+            </span>
             <span className="legend-tag tag-unknown">? Unknown (Plumbing Hidden Behind Wall)</span>
             <span className="legend-tag tag-verify">! Verify (Requires Field Measurement)</span>
           </div>
@@ -195,7 +214,9 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
                     className={`drawer-tab-btn ${selectedDomain === key ? "active" : ""}`}
                     onClick={() => setSelectedDomain(key)}
                   >
-                    {DOMAIN_ICONS[key]} {key.toUpperCase()} ({getStatusIcon(entry.status)})
+                    <Icon name={DOMAIN_ICONS[key]} size={11} />
+                    <span>{key}</span>
+                    <Icon name={getStatusIcon(entry.status)} size={10} />
                   </button>
                 );
               })}
@@ -206,7 +227,7 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
               onClick={() => setIsExpanded(false)}
               aria-label="Close verification drawer"
             >
-              ✕ Close
+              <Icon name="close" size={11} /> Close
             </button>
           </div>
 
@@ -214,7 +235,7 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
             <div className="dock-checks-body">
               <div className="domain-summary-banner">
                 <span className="summary-title">
-                  {DOMAIN_LABELS[selectedDomain]} SUMMARY:
+                  {DOMAIN_LABELS[selectedDomain]}
                 </span>
                 <span className="summary-text">
                   {ledger.domains[selectedDomain].summary}
@@ -230,19 +251,23 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
                       className={`check-card check-card-${chk.status}`}
                     >
                       <div className="check-card-header">
-                        <span className="check-mark">
-                          {chk.status === "pass"
-                            ? "✓"
-                            : chk.status === "fail"
-                            ? "✗"
-                            : "⚠"}
-                        </span>
+                        <Icon
+                          className="check-mark"
+                          size={12}
+                          name={
+                            chk.status === "pass"
+                              ? "check"
+                              : chk.status === "fail"
+                              ? "cross"
+                              : "warn"
+                          }
+                        />
                         <strong className="check-name">
                           {chk.constraint.replace(/_/g, " ")}
                         </strong>
                         <span className="check-trust-pill">
                           {chk.status === "pass"
-                            ? "✓ Confirmed"
+                            ? "Confirmed"
                             : chk.status === "verification_required"
                             ? "! Verify"
                             : "≈ Estimated"}
@@ -254,8 +279,8 @@ export const PersistentLedgerDock: React.FC<PersistentLedgerDockProps> = ({
                 ) : (
                   <div className="check-card check-card-pass">
                     <div className="check-card-header">
-                      <span className="check-mark">✓</span>
-                      <strong className="check-name">Deterministic Compliance Verified</strong>
+                      <Icon name="check" size={12} className="check-mark" />
+                      <strong className="check-name">Compliance verified</strong>
                     </div>
                     <p className="check-reason">
                       All calculations for {selectedDomain} are satisfied according to established plumbing code

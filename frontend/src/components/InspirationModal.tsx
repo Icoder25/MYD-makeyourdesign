@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { api } from "../api";
 import type { InspirationStylePreset, InspirationApplyResponse } from "../types";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon } from "./Icon";
 
 interface InspirationModalProps {
   projectId: string;
@@ -71,13 +72,11 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
       >
         <div className="modal-header">
           <div>
-            <span className="badge-luxury">ARCHITECTURAL DESIGN INSPIRATION</span>
-            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>
-              KOHLER Collection Directions
-            </h2>
+            <span className="badge-luxury">Inspiration</span>
+            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>Collection directions</h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
@@ -171,9 +170,7 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
                     <h3 style={{ margin: 0, fontSize: "18px", color: "var(--ink-900)" }}>
                       {selectedPreset.title}
                     </h3>
-                    <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--primary-deep)", fontWeight: 600 }}>
-                      KOHLER Curated
-                    </span>
+                    <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--primary-deep)", fontWeight: 600 }}>Curated</span>
                   </div>
                   <p style={{ margin: "6px 0 0", fontSize: "13px", fontStyle: "italic", color: "var(--ink-700)" }}>
                     "{selectedPreset.tagline}"
@@ -187,7 +184,7 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px" }}>
                   <div style={{ background: "white", padding: "10px 12px", borderRadius: "6px", border: "1px solid var(--border-light)" }}>
                     <span style={{ fontWeight: 600, color: "var(--ink-700)", display: "block", marginBottom: "4px" }}>
-                      PRIMARY MATERIALS
+                      Primary materials
                     </span>
                     <span style={{ color: "var(--ink-900)" }}>
                       {selectedPreset.primary_materials.join(" · ")}
@@ -195,7 +192,7 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
                   </div>
                   <div style={{ background: "white", padding: "10px 12px", borderRadius: "6px", border: "1px solid var(--border-light)" }}>
                     <span style={{ fontWeight: 600, color: "var(--ink-700)", display: "block", marginBottom: "4px" }}>
-                      HARDWARE FINISHES
+                      Hardware finishes
                     </span>
                     <span style={{ color: "var(--ink-900)" }}>
                       {selectedPreset.hardware_finishes.join(" · ")}
@@ -203,7 +200,7 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
                   </div>
                   <div style={{ background: "white", padding: "10px 12px", borderRadius: "6px", border: "1px solid var(--border-light)" }}>
                     <span style={{ fontWeight: 600, color: "var(--ink-700)", display: "block", marginBottom: "4px" }}>
-                      RECOMMENDED FAMILIES
+                      Recommended families
                     </span>
                     <span style={{ color: "var(--primary-deep)", fontWeight: 600 }}>
                       {selectedPreset.recommended_families.join(", ")}
@@ -211,7 +208,7 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
                   </div>
                   <div style={{ background: "white", padding: "10px 12px", borderRadius: "6px", border: "1px solid var(--border-light)" }}>
                     <span style={{ fontWeight: 600, color: "var(--ink-700)", display: "block", marginBottom: "4px" }}>
-                      COLOR PALETTE
+                      Color palette
                     </span>
                     <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
                       {selectedPreset.palette_tones.map((hex, idx) => (
@@ -245,7 +242,7 @@ export const InspirationModal: React.FC<InspirationModalProps> = ({
                 {/* Optional Custom Style Prompt */}
                 <div style={{ marginTop: "4px" }}>
                   <label style={{ fontSize: "11px", fontWeight: 600, color: "var(--ink-700)", display: "block", marginBottom: "4px" }}>
-                    OPTIONAL: NATURAL LANGUAGE ADJUSTMENT
+                    Or describe it in your own words
                   </label>
                   <input
                     type="text"

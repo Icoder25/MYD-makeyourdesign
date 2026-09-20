@@ -4,6 +4,7 @@ import { Bathroom3DCanvas } from "./Bathroom3DCanvas";
 import { BathroomPlanSVG } from "./BathroomPlanSVG";
 import { LiveSpacePreview } from "./LiveSpacePreview";
 import { VersionDiffPanel } from "./VersionDiffPanel";
+import { Icon, type IconName } from "./Icon";
 import type {
   DesignState,
   DesignStateDiff,
@@ -21,16 +22,16 @@ const WALL_TITLES: Record<string, string> = {
   west: "West",
 };
 
-const CATEGORY_GLYPHS: Record<string, string> = {
-  vanity: "🪞",
-  basin: "🚰",
-  faucet: "🚰",
-  toilet: "🚽",
-  smart_toilet: "🚽",
-  shower: "🚿",
-  smart_shower: "🚿",
-  bathtub: "🛁",
-  storage: "🗄",
+const CATEGORY_GLYPHS: Record<string, IconName> = {
+  vanity: "vanity",
+  basin: "basin",
+  faucet: "basin",
+  toilet: "toilet",
+  smart_toilet: "toilet",
+  shower: "shower",
+  smart_shower: "shower",
+  bathtub: "bath",
+  storage: "archive",
 };
 
 export type CanvasModeTab =
@@ -84,8 +85,10 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
   if (!state || !layout) {
     return (
       <div className="canvas-empty-state">
-        <div className="empty-icon">📐</div>
-        <h3>No Architectural Plan Loaded</h3>
+        <div className="empty-icon">
+          <Icon name="plan" size={30} />
+        </div>
+        <h3>No plan yet</h3>
         <p>Complete the project brief to compute your baseline configuration.</p>
       </div>
     );
@@ -103,26 +106,26 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
       {/* Column Header */}
       <div className="column-card-header">
         <div className="header-title-row">
-          <span className="column-label">ARCHITECTURAL CANVAS · CENTERPIECE</span>
+          <span className="column-label">The drawing</span>
           <div className="canvas-status-pills">
             <span className="canvas-meta-pill">
-              {activeVersion.toUpperCase()} {activeVersion === "v2" ? "(Modified State)" : "(Baseline)"}
+              {activeVersion.toUpperCase()} {activeVersion === "v2" ? "modified" : "baseline"}
             </span>
             <span className="canvas-truth-pill">
               {canvasTab === "2d_plan"
-                ? "SPATIAL INTENT · IMPLEMENTED"
+                ? "Solved geometry"
                 : canvasTab === "3d_view"
-                ? "3D ROOM · IMPLEMENTED"
+                ? "Solved geometry"
                 : canvasTab === "panorama_360"
-                ? "360° · PREVIEW"
+                ? "Preview only"
                 : canvasTab === "ar_preview"
-                ? "AR · PREVIEW"
-                : "ELEVATIONS · VERIFIED"}
+                ? "Preview only"
+                : "Measured elevations"}
             </span>
           </div>
         </div>
 
-        <h2 className="column-title">Spatial Geometry &amp; Visual Studio</h2>
+        <h2 className="column-title">Plan, elevations &amp; room</h2>
 
         {/* Tab Switcher */}
         <div className="canvas-tabs-nav" role="tablist">
@@ -134,7 +137,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             onClick={() => setCanvasTab("2d_plan")}
             title="Plan the space · Strict engineering coordinates & clear floors"
           >
-            📐 2D Plan
+            <Icon name="plan" size={13} /> 2D plan
           </button>
           <button
             type="button"
@@ -144,7 +147,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             onClick={() => setCanvasTab("3d_view")}
             title="See the room · Interactive 3D perspective with camera orbit"
           >
-            🏛 3D View
+            <Icon name="studio" size={13} /> 3D view
           </button>
           <button
             type="button"
@@ -154,7 +157,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             onClick={() => setCanvasTab("panorama_360")}
             title="Explore the room · 360-degree architectural panorama preview"
           >
-            🔄 360°
+            <Icon name="refresh" size={13} /> 360°
           </button>
           <button
             type="button"
@@ -164,7 +167,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             onClick={() => setCanvasTab("ar_preview")}
             title="Preview it in your space · Mobile AR placement guide"
           >
-            📱 AR Preview
+            <Icon name="phone" size={13} /> AR preview
           </button>
           <button
             type="button"
@@ -173,9 +176,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             className={`canvas-tab-btn ${canvasTab === "elevations" ? "active" : ""}`}
             onClick={() => setCanvasTab("elevations")}
             title="4-Wall interior elevation schematics"
-          >
-            Wall Elevations
-          </button>
+          >Wall elevations</button>
           <button
             type="button"
             role="tab"
@@ -193,9 +194,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             className={`canvas-tab-btn ${canvasTab === "photo" ? "active" : ""}`}
             onClick={() => setCanvasTab("photo")}
             title="Upload bathroom site photo for visual overlay"
-          >
-            Photo Overlay
-          </button>
+          >Photo overlay</button>
           {diff && (
             <button
               type="button"
@@ -239,20 +238,20 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
                 type="button"
                 className="btn-canvas-ctrl"
                 onClick={handleZoomOut}
-                title="Zoom Out"
-                aria-label="Zoom Out"
+                title="Zoom out"
+                aria-label="Zoom out"
               >
-                －
+                <Icon name="minus" size={12} title="Zoom out" />
               </button>
               <span className="zoom-scale-text">{Math.round(zoomScale * 100)}%</span>
               <button
                 type="button"
                 className="btn-canvas-ctrl"
                 onClick={handleZoomIn}
-                title="Zoom In"
-                aria-label="Zoom In"
+                title="Zoom in"
+                aria-label="Zoom in"
               >
-                ＋
+                <Icon name="plus" size={12} title="Zoom in" />
               </button>
               <button
                 type="button"
@@ -277,9 +276,17 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
             type="button"
             className="btn-canvas-ctrl"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            title={isFullscreen ? "Exit Fullscreen Canvas" : "Expand Canvas to Fullscreen"}
+            title={isFullscreen ? "Exit fullscreen" : "Expand to fullscreen"}
           >
-            {isFullscreen ? "🗗 Exit" : "⛶ Fullscreen"}
+            {isFullscreen ? (
+            <>
+              <Icon name="layers" size={12} /> Exit
+            </>
+          ) : (
+            <>
+              <Icon name="expand" size={12} /> Fullscreen
+            </>
+          )}
           </button>
 
           {meta && (
@@ -289,7 +296,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
               onClick={() => setShowVisionDrawer(!showVisionDrawer)}
               title="Inspect visual observations and unknowns"
             >
-              <span>👁</span> {showVisionDrawer ? "Close Evidence" : "Vision & Unknowns"}
+              <Icon name="eye" size={12} /> {showVisionDrawer ? "Close evidence" : "Vision & unknowns"}
             </button>
           )}
         </div>
@@ -333,7 +340,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
         {canvasTab === "panorama_360" && (
           <div className="canvas-view-content panorama-view-container">
             <div className="panorama-truth-banner">
-              <span className="badge-3d-status">EXPLORE THE ROOM · VISUALIZATION PREVIEW</span>
+              <span className="badge-3d-status">Walk the room · preview only</span>
               <span className="truth-text">
                 A schematic walk-around of the four walls, built from the solved layout — not a rendered
                 photograph. Drag the slider to turn through the room.
@@ -362,12 +369,12 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
                       </span>
                       {onThisWall.map((f) => (
                         <div key={f.product_id} className="pano-fixture-pin">
-                          {CATEGORY_GLYPHS[f.category] ?? "▪"} {f.product_name}
+                          <Icon name={CATEGORY_GLYPHS[f.category] ?? "box"} size={12} /> {f.product_name}
                         </div>
                       ))}
                       {doorHere && layout.door && (
                         <div className="pano-fixture-pin pin-door">
-                          🚪 Door · {layout.door.width_in}″ {layout.door.swing}
+                          <Icon name="door" size={12} /> Door · {layout.door.width_in}″ {layout.door.swing}
                         </div>
                       )}
                       {onThisWall.length === 0 && !doorHere && (
@@ -416,7 +423,7 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
         {canvasTab === "ar_preview" && (
           <div className="canvas-view-content ar-preview-container">
             <div className="ar-truth-banner">
-              <span className="badge-3d-status">AR · NOT AVAILABLE IN THIS BUILD</span>
+              <span className="badge-3d-status">AR is not available in this build</span>
               <span className="truth-text">
                 Room-scale AR is on the roadmap. It is not implemented here, and this screen does not
                 place anything in your room.
@@ -436,11 +443,11 @@ export const PlanCanvas: React.FC<PlanCanvasProps> = ({
                   <h4>What to use instead, today</h4>
                   <ul>
                     <li>
-                      <strong>2D Plan</strong> — the dimensioned layout every clearance check is
+                      <strong>2D plan</strong> — the dimensioned layout every clearance check is
                       actually computed against.
                     </li>
                     <li>
-                      <strong>3D Room</strong> — the same solved coordinates as a walkable massing
+                      <strong>3D room</strong> — the same solved coordinates as a walkable massing
                       model.
                     </li>
                     <li>

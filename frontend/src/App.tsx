@@ -17,6 +17,7 @@ import { ProductSpecificationSheet } from "./components/ProductSpecificationShee
 import { NavRoute, Sidebar, UserRole } from "./components/Sidebar";
 import { SustainabilityModal } from "./components/SustainabilityModal";
 import { AppTheme, WorkspaceHeader } from "./components/WorkspaceHeader";
+import { Icon } from "./components/Icon";
 import type {
   CandidatePlan,
   ConstraintLedger,
@@ -208,7 +209,7 @@ function buildInitialDesignState(plan: PlanResponse, candidate: CandidatePlan): 
         category: "overall",
         action: "initial_selection",
         product_id: "init",
-        product_name: "Initial Candidate Plan",
+        product_name: "First candidate plan",
         client_requirement_ref: null,
         rationale: "Initial plan generated from stated brief requirements.",
         timestamp: new Date().toISOString(),
@@ -279,7 +280,7 @@ export default function App() {
       return [];
     }
   });
-  const [saveStatusText, setSaveStatusText] = useState<string>("✓ Ready");
+  const [saveStatusText, setSaveStatusText] = useState<string>("Ready");
 
   // Apply & Listen Theme Changes
   useEffect(() => {
@@ -423,7 +424,7 @@ export default function App() {
       setActiveDiff(null);
       setViewingVersion("v1");
       setIsFinalized(false);
-      setSaveStatusText("✓ Recomputed");
+      setSaveStatusText("Recomputed");
       if (result.candidates.length > 0) {
         const v1 = await loadDesignState(result.project_id, result, result.candidates[0]);
         setActiveDesignState(v1);
@@ -454,7 +455,7 @@ export default function App() {
       setImpactReport(null);
       setViewingVersion("v2");
       setIsFinalized(false);
-      setSaveStatusText("✓ V2 Created & Saved");
+      setSaveStatusText("Version 2 saved");
     }
   };
 
@@ -462,7 +463,7 @@ export default function App() {
     setPlan(res.plan);
     setSelected(0);
     setActiveDesignState(normalizeDesignStateLedger(res.state));
-    setSaveStatusText("✓ Style Applied");
+    setSaveStatusText("Style applied");
     if (res.state.version_number > 1) {
       setViewingVersion("v2");
       api
@@ -492,7 +493,7 @@ export default function App() {
     setSavedProjects(updated);
     try {
       localStorage.setItem("kohler_saved_projects", JSON.stringify(updated));
-      setSaveStatusText("✓ Saved to Projects");
+      setSaveStatusText("Saved to projects");
     } catch {
       /* ignore storage quota */
     }
@@ -516,7 +517,7 @@ export default function App() {
 
     try {
       await api.getPlan(record.id);
-      setSaveStatusText("✓ Opened");
+      setSaveStatusText("Opened");
       return;
     } catch (caught) {
       if (!(caught instanceof ApiError) || (caught.status !== 404 && caught.status !== 0)) {
@@ -534,7 +535,7 @@ export default function App() {
         setV1DesignState(v1);
         setViewingVersion("v1");
       }
-      setSaveStatusText("✓ Opened · session rebuilt");
+      setSaveStatusText("Opened · session rebuilt");
       setError(
         "This design was reopened from your browser and the planning session had to be rebuilt, " +
           "so it starts again at V1 — any later versions you had made are not on the server. " +
@@ -588,7 +589,7 @@ export default function App() {
 
   const projectName = plan
     ? savedProjects.find((p) => p.id === plan.project_id)?.name ?? "Untitled design"
-    : "New Project";
+    : "New project";
 
   // Active view layout & ledger
   const currentDisplayState =
@@ -625,7 +626,7 @@ export default function App() {
       <div className="studio-main-frame">
         {/* Workspace Top Header & Project Context Bar */}
         <WorkspaceHeader
-          projectId={plan?.project_id || "New Project"}
+          projectId={plan?.project_id || "New project"}
           projectName={projectName}
           roomWidthFt={currentDisplayState?.room_width_ft ?? plan?.brief.room_width_ft ?? null}
           roomLengthFt={currentDisplayState?.room_length_ft ?? plan?.brief.room_length_ft ?? null}
@@ -675,12 +676,12 @@ export default function App() {
         {!plan && !busy && (
           <main className="hero-studio-landing">
             <div className="hero-landing-card">
-              <span className="hero-badge">KOHLER AI BATHPLAN</span>
-              <h2 className="hero-heading">Your Dream Bathroom, Designed with Intelligence</h2>
+              <span className="hero-badge">KOHLER AI BathPlan</span>
+              <h2 className="hero-heading">A bathroom that actually fits the room you have</h2>
               <p className="hero-subtext">
-                Explore a feasible layout, products, and visual options — then understand what changes
-                before you commit. Powered by verified architectural rules and the DesignPulse™
-                consequence engine.
+                Give us the dimensions, the budget and what matters to you. A layout solver places
+                every fixture against published code clearances, and tells you plainly when your
+                requirements cannot all hold at once — and what to give up if they can’t.
               </p>
 
               <div className="hero-cta-cluster">
@@ -689,29 +690,29 @@ export default function App() {
                   className="btn-hero-primary"
                   onClick={() => handlePlan(buildRequest(GOLDEN_PATH as any))}
                 >
-                  <span>🏛</span> Launch Golden Demo Project (6′ × 8′ Master Bath)
+                  <Icon name="studio" size={17} /> Open the worked example — 6′ × 8′ master bath
                 </button>
                 <button
                   type="button"
                   className="btn-hero-secondary"
                   onClick={() => setIsBriefOpen(true)}
                 >
-                  <span>📐</span> Enter Custom Room Dimensions
+                  <Icon name="plan" size={17} /> Measure my own room
                 </button>
               </div>
 
               <div className="hero-features-strip">
                 <div className="feature-item">
-                  <span className="feature-icon">✓</span>
-                  <span>Strict NKBA &amp; IRC Clearances</span>
+                  <Icon name="check" size={14} className="feature-icon" />
+                  <span>NKBA &amp; IRC clearances</span>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">⚡</span>
-                  <span>DesignPulse™ Consequence Tracking</span>
+                  <Icon name="pulse" size={14} className="feature-icon" />
+                  <span>DesignPulse™ consequence tracking</span>
                 </div>
                 <div className="feature-item">
-                  <span className="feature-icon">💧</span>
-                  <span>WaterSense Conservation Intelligence</span>
+                  <Icon name="drop" size={14} className="feature-icon" />
+                  <span>WaterSense water accounting</span>
                 </div>
               </div>
             </div>
@@ -902,7 +903,7 @@ export default function App() {
           isFinalized={isFinalized}
           onFinalizeConfirm={() => {
             setIsFinalized(true);
-            setSaveStatusText("🔒 Finalized & Locked");
+            setSaveStatusText("Finalized & locked");
           }}
           onOpenExport={() => setIsExportOpen(true)}
         />

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { formatMoney } from "../api";
 import type { DesignState, PlanResponse } from "../types";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon } from "./Icon";
 
 export interface SavedProjectRecord {
   id: string;
@@ -59,18 +60,16 @@ export const MyDesignsDrawer: React.FC<MyDesignsDrawerProps> = ({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="My Saved Bathroom Designs"
+        aria-label="Saved designs"
         style={{ maxWidth: "680px", width: "95vw" }}
       >
         <div className="modal-header">
           <div>
-            <span className="badge-luxury">PERSISTENT PROJECT VAULT</span>
-            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>
-              My Bathroom Projects
-            </h2>
+            <span className="badge-luxury">Saved work</span>
+            <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>Saved projects</h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
@@ -90,9 +89,7 @@ export const MyDesignsDrawer: React.FC<MyDesignsDrawerProps> = ({
                   className="primary"
                   onClick={() => setIsSaving(true)}
                   style={{ fontSize: "0.84rem", padding: "0.4rem 0.9rem" }}
-                >
-                  Save Current Project
-                </button>
+                >Save this project</button>
               </div>
             ) : (
               <form className="save-current-form" onSubmit={handleSave}>
@@ -144,7 +141,7 @@ export const MyDesignsDrawer: React.FC<MyDesignsDrawerProps> = ({
                   <div className="project-card-main">
                     <div className="project-card-meta">
                       <h4 className="project-card-name">{p.name}</h4>
-                      {isCurrent && <span className="active-badge">● CURRENTLY ACTIVE</span>}
+                      {isCurrent && <span className="active-badge">Currently active</span>}
                     </div>
                     <div className="project-specs-line">
                       <span>{p.dimensions}</span>
@@ -168,7 +165,7 @@ export const MyDesignsDrawer: React.FC<MyDesignsDrawerProps> = ({
                       disabled={isCurrent}
                       title={isCurrent ? "Currently active in workspace" : "Load this project"}
                     >
-                      {isCurrent ? "Loaded" : "Open Project"}
+                      {isCurrent ? "Loaded" : "Open"}
                     </button>
                     <button
                       type="button"
@@ -176,7 +173,7 @@ export const MyDesignsDrawer: React.FC<MyDesignsDrawerProps> = ({
                       onClick={() => onDeleteProject(p.id)}
                       title="Remove from saved projects"
                     >
-                      🗑
+                      <Icon name="trash" size={14} title="Delete project" />
                     </button>
                   </div>
                 </div>

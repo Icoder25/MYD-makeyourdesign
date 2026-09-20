@@ -1,14 +1,15 @@
 import { useState } from "react";
 import type { ConstraintLedger, LedgerStatus } from "../types";
+import { Icon, type IconName } from "./Icon";
 
-const DOMAIN_ICONS: Record<string, string> = {
-  space: "📐",
-  budget: "💰",
-  compatibility: "🔗",
-  installation: "🔧",
-  style: "🎨",
-  water: "💧",
-  verification: "📋",
+const DOMAIN_ICONS: Record<string, IconName> = {
+  space: "plan",
+  budget: "money",
+  compatibility: "link",
+  installation: "wrench",
+  style: "palette",
+  water: "drop",
+  verification: "clipboard",
 };
 
 const DOMAIN_LABELS: Record<string, string> = {
@@ -31,15 +32,19 @@ export function ConstraintLedgerPanel({ ledger }: Props) {
   const getOverallBadge = () => {
     switch (ledger.overall_status) {
       case "feasible":
-        return <span className="ledger-verdict verdict-pass">✓ Feasible</span>;
+        return <span className="ledger-verdict verdict-pass">
+        <Icon name="check" size={13} /> Feasible
+      </span>;
       case "feasible_pending_verification":
         return (
           <span className="ledger-verdict verdict-warn">
-            ⚠ Feasible (Pending Verification)
+            <Icon name="warn" size={13} /> Feasible — pending verification
           </span>
         );
       case "infeasible":
-        return <span className="ledger-verdict verdict-fail">✗ Infeasible</span>;
+        return <span className="ledger-verdict verdict-fail">
+        <Icon name="cross" size={13} /> Infeasible
+      </span>;
       default:
         return null;
     }
@@ -70,7 +75,7 @@ export function ConstraintLedgerPanel({ ledger }: Props) {
     <section className="panel ledger-panel">
       <div className="ledger-header">
         <div>
-          <h2>Constraint Ledger</h2>
+          <h2>Constraint ledger</h2>
           <p className="hint">
             Deterministic architectural health across 7 functional domains. All verdicts
             are verified against catalog specifications, physical clearances, and local code.
@@ -94,7 +99,9 @@ export function ConstraintLedgerPanel({ ledger }: Props) {
               onClick={() => setExpandedDomain(isExpanded ? null : domainKey)}
             >
               <div className="ledger-card-top">
-                <span className="domain-icon">{DOMAIN_ICONS[domainKey] ?? "•"}</span>
+                <span className="domain-icon">
+            <Icon name={DOMAIN_ICONS[domainKey] ?? "dot"} size={14} />
+          </span>
                 <span className="domain-title">
                   {DOMAIN_LABELS[domainKey] ?? domainKey.toUpperCase()}
                 </span>
@@ -103,7 +110,15 @@ export function ConstraintLedgerPanel({ ledger }: Props) {
               <p className="ledger-card-summary">{entry.summary}</p>
               {entry.checks && entry.checks.length > 0 && (
                 <span className="ledger-details-toggle">
-                  {isExpanded ? "Hide details ▲" : `${entry.checks.length} checks ▼`}
+                  {isExpanded ? (
+              <>
+                Hide details <Icon name="caretUp" size={11} />
+              </>
+            ) : (
+              <>
+                {entry.checks.length} checks <Icon name="caretDown" size={11} />
+              </>
+            )}
                 </span>
               )}
 
@@ -114,13 +129,17 @@ export function ConstraintLedgerPanel({ ledger }: Props) {
                       key={idx}
                       className={`ledger-check-item check-${chk.status}`}
                     >
-                      <span className="check-indicator">
-                        {chk.status === "pass"
-                          ? "✓"
-                          : chk.status === "fail"
-                          ? "✗"
-                          : "⚠"}
-                      </span>
+                      <Icon
+                        className="check-indicator"
+                        size={12}
+                        name={
+                          chk.status === "pass"
+                            ? "check"
+                            : chk.status === "fail"
+                            ? "cross"
+                            : "warn"
+                        }
+                      />
                       <div className="check-body">
                         <strong>{chk.constraint.replace(/_/g, " ")}</strong>
                         <p>{chk.reason}</p>

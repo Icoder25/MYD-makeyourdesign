@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatMoney } from "../api";
+import { Icon } from "./Icon";
 import type {
   DesignState,
   ImpactReport,
@@ -56,10 +57,10 @@ export function DesignPulseChangeConsole({
       {/* Header */}
       <div className="column-card-header">
         <div className="header-title-row">
-          <span className="column-label">COLUMN 3 · CONSEQUENCE ENGINE</span>
+          <span className="column-label">Consequences</span>
           <span className="copilot-brand-pill">DesignPulse™</span>
         </div>
-        <h2 className="column-title">Make a Change. See the Full Impact.</h2>
+        <h2 className="column-title">Change one thing, see what it moves</h2>
         <p className="column-subtext">
           {userRole === "designer"
             ? "Deterministic dependency graph traverses clearances, rough-in constraints, and pricing in real time."
@@ -130,7 +131,7 @@ export function DesignPulseChangeConsole({
             {/* 1. Change Detection Banner */}
             <div className="change-detection-card">
               <div className="detection-header">
-                <span className="detection-badge">CHANGE INTENT DETECTED</span>
+                <span className="detection-badge">Change understood as</span>
                 <span className="detection-category">
                   {impactReport.changed_category.toUpperCase()}
                 </span>
@@ -160,11 +161,11 @@ export function DesignPulseChangeConsole({
             {/* 2. Structured Impact Breakdown (Affected vs Unchanged) */}
             <div className="impact-consequences-grid">
               <div className="consequence-box affected-box">
-                <span className="box-title">AFFECTED BY THIS CHANGE</span>
+                <span className="box-title">Affected by this change</span>
                 <div className="badge-wrap">
                   {impactReport.affected_categories.map((cat) => (
                     <span key={cat} className="badge-consequence badge-affected">
-                      ⚠ {cat.replace(/_/g, " ")}
+                      <Icon name="warn" size={11} /> {cat.replace(/_/g, " ")}
                     </span>
                   ))}
                   {impactReport.dependency_evaluations
@@ -175,12 +176,14 @@ export function DesignPulseChangeConsole({
                     )
                     .map((e) => (
                       <span key={e.target} className="badge-consequence badge-affected">
-                        ⚠ {e.target.replace(/_/g, " ")}
+                        <Icon name="warn" size={11} /> {e.target.replace(/_/g, " ")}
                       </span>
                     ))}
-                  <span className="badge-consequence badge-affected">⚠ Circulation corridor</span>
                   <span className="badge-consequence badge-affected">
-                    ⚠ Budget ({impactReport.price_delta >= 0 ? "+" : ""}
+                    <Icon name="warn" size={11} /> Circulation corridor
+                  </span>
+                  <span className="badge-consequence badge-affected">
+                    <Icon name="warn" size={11} /> Budget ({impactReport.price_delta >= 0 ? "+" : ""}
                     {formatMoney(impactReport.price_delta)})
                   </span>
                 </div>
@@ -191,7 +194,7 @@ export function DesignPulseChangeConsole({
                 <div className="badge-wrap">
                   {impactReport.unaffected_categories.map((cat) => (
                     <span key={cat} className="badge-consequence badge-unaffected">
-                      ✓ {cat.replace(/_/g, " ")}
+                      <Icon name="check" size={11} /> {cat.replace(/_/g, " ")}
                     </span>
                   ))}
                   {impactReport.dependency_evaluations
@@ -202,11 +205,15 @@ export function DesignPulseChangeConsole({
                     )
                     .map((e) => (
                       <span key={e.target} className="badge-consequence badge-unaffected">
-                        ✓ {e.target.replace(/_/g, " ")}
+                        <Icon name="check" size={11} /> {e.target.replace(/_/g, " ")}
                       </span>
                     ))}
-                  <span className="badge-consequence badge-unaffected">✓ Door swing</span>
-                  <span className="badge-consequence badge-unaffected">✓ Room boundary</span>
+                  <span className="badge-consequence badge-unaffected">
+                    <Icon name="check" size={11} /> Door swing
+                  </span>
+                  <span className="badge-consequence badge-unaffected">
+                    <Icon name="check" size={11} /> Room boundary
+                  </span>
                 </div>
               </div>
             </div>
@@ -216,7 +223,7 @@ export function DesignPulseChangeConsole({
               <div className={`impact-tile tile-${impactReport.spatial_status}`}>
                 <span className="tile-name">SPACE</span>
                 <span className="tile-status">
-                  {impactReport.spatial_status === "pass" ? "✓ Clearances Pass" : "⚠ Clearance Overlap"}
+                  {impactReport.spatial_status === "pass" ? "Clearances pass" : "Clearance overlap"}
                 </span>
               </div>
               <div className={`impact-tile tile-${impactReport.budget_status}`}>
@@ -227,15 +234,15 @@ export function DesignPulseChangeConsole({
                 </span>
               </div>
               <div className={`impact-tile tile-${impactReport.compatibility_status}`}>
-                <span className="tile-name">COMPATIBILITY</span>
+                <span className="tile-name">Compatibility</span>
                 <span className="tile-status">
-                  {impactReport.compatibility_status === "pass" ? "✓ Compatible" : "⚠ Interface Check"}
+                  {impactReport.compatibility_status === "pass" ? "Compatible" : "Interface check"}
                 </span>
               </div>
               <div className={`impact-tile tile-${impactReport.installation_status}`}>
-                <span className="tile-name">INSTALLATION</span>
+                <span className="tile-name">Installation</span>
                 <span className="tile-status">
-                  {impactReport.installation_status === "pass" ? "✓ Verified" : "⚠ Rough-In Check"}
+                  {impactReport.installation_status === "pass" ? "Verified" : "Rough-in check"}
                 </span>
               </div>
             </div>
@@ -243,7 +250,7 @@ export function DesignPulseChangeConsole({
             {/* 4. Feasible Actionable Trade-offs */}
             <div className="tradeoffs-container">
               <div className="tradeoffs-header">
-                <span className="tradeoffs-title">ACTIONABLE TRADE-OFF CANDIDATES</span>
+                <span className="tradeoffs-title">Trade-offs you could take</span>
                 <span className="tradeoffs-subtitle">
                   Choose a deterministic resolution to apply and construct Version 2:
                 </span>
@@ -289,7 +296,7 @@ export function DesignPulseChangeConsole({
                           {formatMoney(option.price_delta)}
                         </span>
                         <span className="option-feasibility-tag">
-                          {option.resulting_is_feasible ? "✓ Guaranteed Feasible" : "⚠ Infeasible"}
+                          {option.resulting_is_feasible ? "Guaranteed feasible" : "Infeasible"}
                         </span>
                       </div>
                     </div>
@@ -311,7 +318,7 @@ export function DesignPulseChangeConsole({
                     if (chosen) onApplyTradeoff(chosen);
                   }}
                 >
-                  <span>✓</span> Apply Change &amp; Construct Version 2
+                  <Icon name="check" size={14} /> Apply change &amp; construct version 2
                 </button>
 
                 <div className="secondary-actions-row">
@@ -329,9 +336,7 @@ export function DesignPulseChangeConsole({
                       type="button"
                       className="btn-copilot-secondary"
                       onClick={onKeepCurrent}
-                    >
-                      Keep Current Baseline
-                    </button>
+                    >Keep the baseline</button>
                   )}
                 </div>
               </div>
@@ -339,11 +344,14 @@ export function DesignPulseChangeConsole({
           </div>
         ) : (
           <div className="copilot-empty-placeholder">
-            <div className="copilot-empty-icon">⚡</div>
-            <h4 className="copilot-empty-title">Ready for Consequence Analysis</h4>
+            <div className="copilot-empty-icon">
+              <Icon name="pulse" size={22} />
+            </div>
+            <h4 className="copilot-empty-title">Nothing to evaluate yet</h4>
             <p className="copilot-empty-desc">
-              Request a modification above or pick a quick suggestion. DesignPulse will simulate the
-              ripple effect across clearances, plumbing lines, and budget before any change is locked.
+              Describe a change above, or pick one of the suggestions. Every clearance, plumbing
+              line and price is recomputed before anything is committed — so you see the cost of a
+              decision before you make it.
             </p>
           </div>
         )}

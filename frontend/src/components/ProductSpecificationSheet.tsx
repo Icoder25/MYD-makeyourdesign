@@ -1,6 +1,7 @@
 import React from "react";
 import { formatLitres, formatMoney } from "../api";
 import type { CandidatePlan, DesignState, Product } from "../types";
+import { Icon } from "./Icon";
 
 const CATEGORY_ORDER = [
   "vanity",
@@ -37,8 +38,10 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
   if (!state || !state.selected_products) {
     return (
       <div className="product-sheet-empty">
-        <div className="empty-icon">📦</div>
-        <h3>No Products Selected</h3>
+        <div className="empty-icon">
+          <Icon name="box" size={30} />
+        </div>
+        <h3>Nothing specified yet</h3>
         <p>Active specifications will appear here once a plan is generated.</p>
       </div>
     );
@@ -63,10 +66,10 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
       {/* Column Header */}
       <div className="column-card-header">
         <div className="header-title-row">
-          <span className="column-label">COLUMN 2 · PRODUCTS IN THIS DESIGN</span>
-          <span className="spec-count-pill">{products.length} Fixtures</span>
+          <span className="column-label">Specification</span>
+          <span className="spec-count-pill">{products.length} fixtures</span>
         </div>
-        <h2 className="column-title">Selected KOHLER Fixtures</h2>
+        <h2 className="column-title">What goes in the room</h2>
         <p className="column-subtext">
           {userRole === "designer"
             ? "Click any fixture line item to inspect rough-in tolerances, electrical GFCI specs, or swap alternatives."
@@ -77,7 +80,7 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
       {/* Financial & Environmental Investment Header Card */}
       <div className="investment-summary-card">
         <div className="invest-metric">
-          <span className="invest-label">TOTAL INVESTMENT</span>
+          <span className="invest-label">Total investment</span>
           <span className="invest-value">{formatMoney(totalPrice, currency)}</span>
           {budgetLimit !== null && (
             <span className="invest-sub">
@@ -92,7 +95,7 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
 
         {water && water.status === "calculated" && water.annual_litres_saved !== null && (
           <div className="invest-metric water-metric">
-            <span className="invest-label">WATER CONSERVATION</span>
+            <span className="invest-label">Water saved</span>
             <span className="invest-value text-green">
               {formatLitres(water.annual_litres_saved)}/yr
             </span>
@@ -143,7 +146,7 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
 
                 <div className="spec-item-title-row">
                   <span className="spec-product-name">{product.name}</span>
-                  <span className="spec-inspect-hint">Details ›</span>
+                  <span className="spec-inspect-hint">Details</span>
                 </div>
 
                 <div className="spec-item-tech-row">
@@ -163,14 +166,18 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
                     {product.tier && <span className="spec-pill pill-tier">{product.tier}</span>}
                     {product.water.watersense_eligible && (
                       <span className="spec-pill pill-eco" title="WaterSense eligible">
-                        💧 Eco
+                        <Icon name="drop" size={11} /> Eco
                       </span>
                     )}
                     {product.smart.features.length > 0 && (
-                      <span className="spec-pill pill-smart">⚡ Smart</span>
+                      <span className="spec-pill pill-smart">
+                        <Icon name="pulse" size={11} /> Smart
+                      </span>
                     )}
                     {product.electrical_required && (
-                      <span className="spec-pill pill-electric">🔌 120V</span>
+                      <span className="spec-pill pill-electric">
+                        <Icon name="plug" size={11} /> 120V
+                      </span>
                     )}
                   </div>
                 </div>
@@ -188,7 +195,7 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
             className="btn-open-catalog-spec"
             onClick={() => onOpenCatalog()}
           >
-            <span>📦</span> Browse KOHLER Catalog
+            <Icon name="box" size={14} /> Browse KOHLER catalog
           </button>
         )}
         <button
@@ -196,7 +203,7 @@ export const ProductSpecificationSheet: React.FC<ProductSpecificationSheetProps>
           className="btn-curate-palette"
           onClick={onOpenInspiration}
         >
-          <span>✨</span> Curate Style &amp; Materials
+          <Icon name="palette" size={14} /> Curate style &amp; materials
         </button>
       </div>
     </section>

@@ -9,20 +9,35 @@ import type { RoomLayout } from "../types";
  * with the product schedule and inspector.
  */
 
-const PADDING = 44;
+const PADDING = 58;
+
+/**
+ * Plan drawings separate fixtures by tone and material, not by hue. A drafting
+ * sheet that runs through the full spectrum reads as a chart; a tight warm
+ * range — graphite, walnut, soapstone, stone — reads as a room.
+ */
 const CATEGORY_COLOURS: Record<string, string> = {
-  toilet: "#2f6f8f",
-  smart_toilet: "#1f5d7a",
-  vanity: "#7a5b3a",
-  basin: "#8a6a47",
-  shower: "#3f7d6a",
-  smart_shower: "#2f6d5a",
-  bathtub: "#4a6f9c",
-  storage: "#6b6b7d",
-  mirror: "#5a6b82",
+  toilet: "#4a555b",
+  smart_toilet: "#3c4a51",
+  vanity: "#6d583f",
+  basin: "#836d4e",
+  shower: "#4d5c58",
+  smart_shower: "#3f504c",
+  bathtub: "#46535d",
+  storage: "#57524a",
+  mirror: "#6b6a64",
 };
 
+const FALLBACK_COLOUR = "#5a564f";
+
 const label = (category: string) => category.replace(/_/g, " ");
+
+/** Feet-and-inches, the way a drawing is actually annotated. */
+const feetInches = (inches: number) => {
+  const ft = Math.floor(inches / 12);
+  const inch = Math.round(inches - ft * 12);
+  return inch === 0 ? `${ft}′-0″` : `${ft}′-${inch}″`;
+};
 
 interface BathroomPlanSVGProps {
   layout: RoomLayout;
@@ -61,6 +76,10 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
   const fy = (yIn: number, depthIn: number) => PADDING + (roomL - yIn - depthIn) * scale;
   const fx = (xIn: number) => PADDING + xIn * scale;
 
+  // Where the dimension strings sit, clear of the wall poché.
+  const dimTop = PADDING - 30;
+  const dimLeft = PADDING - 30;
+
   // Generate 12-inch grid coordinates
   const gridLinesX: number[] = [];
   for (let gx = 12; gx < roomW; gx += 12) {
@@ -80,10 +99,36 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
         aria-label="Architectural 2D bathroom layout plan"
       >
         <defs>
-          <filter id="glow-highlight" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="#2563eb" floodOpacity="0.7" />
+          <filter id="glow-highlight" x="-25%" y="-25%" width="150%" height="150%">
+            <feDropShadow
+              dx="0"
+              dy="0"
+              stdDeviation="5"
+              floodColor="var(--brass)"
+              floodOpacity="0.85"
+            />
           </filter>
+          {/* Wall poché: the hatch that tells you a wall is solid. */}
+          <pattern
+            id="wall-poche"
+            width="5"
+            height="5"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)"
+          >
+            <line x1="0" y1="0" x2="0" y2="5" className="plan-poche-line" />
+          </pattern>
         </defs>
+
+        {/* Wall thickness, drawn as poché outside the clear opening */}
+        <rect
+          x={PADDING - 7}
+          y={PADDING - 7}
+          width={w + 14}
+          height={h + 14}
+          className="plan-wall-band"
+          fill="url(#wall-poche)"
+        />
 
         {/* Room boundary */}
         <rect
@@ -104,7 +149,7 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
                 y1={PADDING}
                 x2={fx(gx)}
                 y2={PADDING + h}
-                stroke="var(--canvas-grid, #e5e3dc)"
+                stroke="var(--canvas-grid)"
                 strokeWidth={0.7}
                 strokeDasharray="2,3"
               />
@@ -116,7 +161,7 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
                 y1={fy(gy, 0)}
                 x2={PADDING + w}
                 y2={fy(gy, 0)}
-                stroke="var(--canvas-grid, #e5e3dc)"
+                stroke="var(--canvas-grid)"
                 strokeWidth={0.7}
                 strokeDasharray="2,3"
               />
@@ -163,7 +208,7 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
           const y = fy(item.footprint.y_in, item.footprint.depth_in);
           const fw = item.footprint.width_in * scale;
           const fh = item.footprint.depth_in * scale;
-          const colour = CATEGORY_COLOURS[item.category] ?? "#555";
+          const colour = CATEGORY_COLOURS[item.category] ?? FALLBACK_COLOUR;
           const isHighlighted = highlightedProductId === item.product_id;
           const isSelected = selectedProductId === item.product_id;
           const isTargeted = isHighlighted || isSelected;
@@ -181,10 +226,10 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
                 width={fw}
                 height={fh}
                 fill={colour}
-                rx={3}
+                rx={2}
                 filter={isTargeted ? "url(#glow-highlight)" : undefined}
-                stroke={isTargeted ? "#ffffff" : "rgba(0,0,0,0.15)"}
-                strokeWidth={isTargeted ? 2 : 1}
+                stroke={isTargeted ? "var(--brass-bright)" : "rgba(0, 0, 0, 0.18)"}
+                strokeWidth={isTargeted ? 2 : 0.8}
               />
               <title>
                 {`${item.product_name}\n${item.footprint.width_in}in x ${item.footprint.depth_in}in on the ${item.wall} wall`}
@@ -202,18 +247,91 @@ export const BathroomPlanSVG: React.FC<BathroomPlanSVGProps> = ({
           );
         })}
 
-        {/* Dimension annotations */}
-        <text x={PADDING + w / 2} y={PADDING - 14} className="plan-dim">
-          {(roomW / 12).toFixed(1)} ft ({Math.round(roomW * 2.54)} cm)
-        </text>
-        <text
-          x={PADDING - 14}
-          y={PADDING + h / 2}
-          className="plan-dim"
-          transform={`rotate(-90 ${PADDING - 14} ${PADDING + h / 2})`}
-        >
-          {(roomL / 12).toFixed(1)} ft ({Math.round(roomL * 2.54)} cm)
-        </text>
+        {/* Dimension strings — extension lines, witness ticks, then the number,
+            the way a set of drawings carries a measurement. */}
+        <g className="plan-dim-group">
+          {/* Overall width, above the plan */}
+          <line x1={PADDING} y1={PADDING - 10} x2={PADDING} y2={dimTop - 5} className="plan-ext-line" />
+          <line
+            x1={PADDING + w}
+            y1={PADDING - 10}
+            x2={PADDING + w}
+            y2={dimTop - 5}
+            className="plan-ext-line"
+          />
+          <line x1={PADDING} y1={dimTop} x2={PADDING + w} y2={dimTop} className="plan-dim-line" />
+          <line x1={PADDING - 4} y1={dimTop + 4} x2={PADDING + 4} y2={dimTop - 4} className="plan-dim-tick" />
+          <line
+            x1={PADDING + w - 4}
+            y1={dimTop + 4}
+            x2={PADDING + w + 4}
+            y2={dimTop - 4}
+            className="plan-dim-tick"
+          />
+          <text x={PADDING + w / 2} y={dimTop - 7} className="plan-dim">
+            {feetInches(roomW)}
+            <tspan className="plan-dim-metric"> · {Math.round(roomW * 2.54)} cm</tspan>
+          </text>
+
+          {/* Overall length, to the left */}
+          <line x1={PADDING - 10} y1={PADDING} x2={dimLeft + 5} y2={PADDING} className="plan-ext-line" />
+          <line
+            x1={PADDING - 10}
+            y1={PADDING + h}
+            x2={dimLeft + 5}
+            y2={PADDING + h}
+            className="plan-ext-line"
+          />
+          <line x1={dimLeft} y1={PADDING} x2={dimLeft} y2={PADDING + h} className="plan-dim-line" />
+          <line x1={dimLeft - 4} y1={PADDING + 4} x2={dimLeft + 4} y2={PADDING - 4} className="plan-dim-tick" />
+          <line
+            x1={dimLeft - 4}
+            y1={PADDING + h + 4}
+            x2={dimLeft + 4}
+            y2={PADDING + h - 4}
+            className="plan-dim-tick"
+          />
+          <text
+            x={dimLeft - 7}
+            y={PADDING + h / 2}
+            className="plan-dim"
+            transform={`rotate(-90 ${dimLeft - 7} ${PADDING + h / 2})`}
+          >
+            {feetInches(roomL)}
+            <tspan className="plan-dim-metric"> · {Math.round(roomL * 2.54)} cm</tspan>
+          </text>
+        </g>
+
+        {/* Graphic scale — one foot, measured off the same projection */}
+        <g className="plan-scale-bar">
+          <line
+            x1={PADDING}
+            y1={PADDING + h + 26}
+            x2={PADDING + 12 * scale}
+            y2={PADDING + h + 26}
+            className="plan-dim-line"
+          />
+          <line x1={PADDING} y1={PADDING + h + 22} x2={PADDING} y2={PADDING + h + 30} className="plan-dim-tick" />
+          <line
+            x1={PADDING + 12 * scale}
+            y1={PADDING + h + 22}
+            x2={PADDING + 12 * scale}
+            y2={PADDING + h + 30}
+            className="plan-dim-tick"
+          />
+          <text x={PADDING + 12 * scale + 8} y={PADDING + h + 29} className="plan-scale-text">
+            1′-0″
+          </text>
+        </g>
+
+        {/* North mark */}
+        <g className="plan-north" transform={`translate(${PADDING + w + 16} ${PADDING + h + 22})`}>
+          <line x1="0" y1="10" x2="0" y2="-10" className="plan-north-stem" />
+          <path d="M 0 -12 L 4 -3 L 0 -5 L -4 -3 Z" className="plan-north-head" />
+          <text x="0" y="22" className="plan-north-label">
+            N
+          </text>
+        </g>
       </svg>
 
       <div className="plan-legend">

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { formatMoney } from "../api";
 import type { ConstraintLedger, DesignState } from "../types";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon } from "./Icon";
 
 interface FinalizeModalProps {
   isOpen: boolean;
@@ -42,13 +43,13 @@ export const FinalizeModal: React.FC<FinalizeModalProps> = ({
       >
         <div className="modal-header">
           <div>
-            <span className="badge-luxury">AUDITABLE ARCHITECTURAL SIGN-OFF</span>
+            <span className="badge-luxury">Sign-off</span>
             <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>
-              {isFinalized ? "Specification Finalized & Locked" : "Finalize Architectural Specification"}
+              {isFinalized ? "Specification locked" : "Finalize the specification"}
             </h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
@@ -60,38 +61,36 @@ export const FinalizeModal: React.FC<FinalizeModalProps> = ({
         {/* Specification Snapshot */}
         <div className="finalize-spec-snapshot">
           <div className="snapshot-cell">
-            <span className="cell-title">VERSION</span>
+            <span className="cell-title">Version</span>
             <span className="cell-body font-mono">{state.version_id.toUpperCase()}</span>
           </div>
           <div className="snapshot-cell">
-            <span className="cell-title">DIMENSIONS</span>
+            <span className="cell-title">Dimensions</span>
             <span className="cell-body">
               {state.room_width_ft}′ × {state.room_length_ft}′
             </span>
           </div>
           <div className="snapshot-cell">
-            <span className="cell-title">TOTAL INVESTMENT</span>
+            <span className="cell-title">Total investment</span>
             <span className="cell-body font-mono">
               {formatMoney(state.total_price, state.currency)}
             </span>
           </div>
           <div className="snapshot-cell">
-            <span className="cell-title">FIXTURES</span>
+            <span className="cell-title">Fixtures</span>
             <span className="cell-body">{state.selected_products.length} line items</span>
           </div>
         </div>
 
         {/* Verification Requirements Checklist */}
         <div className="finalize-checklist-section">
-          <h4 style={{ margin: "16px 0 8px", fontSize: "13px", color: "var(--ink-800)" }}>
-            FIELD VERIFICATION REQUIREMENTS (7 DOMAINS)
-          </h4>
+          <h4 className="finalize-section-heading">Field verification</h4>
 
           {verificationChecks.length > 0 ? (
             <ul className="finalize-verification-list">
               {verificationChecks.map((chk, idx) => (
                 <li key={idx} className="verify-list-item">
-                  <span className="verify-icon">⚠</span>
+                  <Icon name="warn" size={13} className="verify-icon" />
                   <div className="verify-text">
                     <strong>{chk.constraint.replace(/_/g, " ")}</strong>: {chk.reason}
                   </div>
@@ -100,7 +99,7 @@ export const FinalizeModal: React.FC<FinalizeModalProps> = ({
             </ul>
           ) : (
             <div className="callout callout-success" style={{ margin: "8px 0 14px", fontSize: "12px" }}>
-              ✓ All standard clearances and rough-in tolerances satisfied.
+              <Icon name="check" size={13} /> All standard clearances and rough-in tolerances satisfied.
             </div>
           )}
         </div>
@@ -155,12 +154,12 @@ export const FinalizeModal: React.FC<FinalizeModalProps> = ({
                 onFinalizeConfirm();
               }}
             >
-              🔒 Lock &amp; Finalize Specification
+              <Icon name="lock" size={14} /> Lock &amp; finalize specification
             </button>
           ) : (
             <div className="finalized-actions-row">
               <span className="finalized-lock-indicator">
-                ✓ Specification Locked for Construction
+                <Icon name="seal" size={14} /> Specification locked for construction
               </span>
               <button
                 type="button"
@@ -170,7 +169,7 @@ export const FinalizeModal: React.FC<FinalizeModalProps> = ({
                   onOpenExport();
                 }}
               >
-                📄 Proceed to Dealer BOM Export →
+                <Icon name="doc" size={14} /> Proceed to dealer BOM export →
               </button>
             </div>
           )}

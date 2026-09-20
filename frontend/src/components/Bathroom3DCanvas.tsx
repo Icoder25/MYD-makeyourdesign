@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { PlacedFixture, RoomLayout } from "../types";
+import { Icon } from "./Icon";
 
 interface Bathroom3DCanvasProps {
   layout: RoomLayout;
@@ -7,17 +8,75 @@ interface Bathroom3DCanvasProps {
   onSelectProduct?: (productId: string) => void;
 }
 
+/** Fixtures are drawn as materials, not as a chart legend: walnut, honed
+ *  stone, vitreous china, low-iron glass, brushed nickel. Each face is the
+ *  same material at a different incidence of light — top lit, front half-lit,
+ *  side in shade — which is what makes a box read as an object. */
 const FIXTURE_3D_COLORS: Record<string, { top: string; front: string; side: string }> = {
-  vanity: { top: "#b89f82", front: "#8a7055", side: "#6c5740" },
-  basin: { top: "#f4f3f0", front: "#dedcd7", side: "#c7c4be" },
-  toilet: { top: "#f8f9fa", front: "#e2e6ea", side: "#cfd4da" },
-  smart_toilet: { top: "#f0f4f8", front: "#d9e2ec", side: "#bcccdc" },
-  shower: { top: "#93c5fd33", front: "#60a5fa44", side: "#3b82f655" }, // glass translucent
-  smart_shower: { top: "#a7f3d033", front: "#34d39944", side: "#10b98155" },
-  bathtub: { top: "#f1f5f9", front: "#cbd5e1", side: "#94a3b8" },
-  storage: { top: "#71717a", front: "#52525b", side: "#3f3f46" },
-  mirror: { top: "#e0e7ff", front: "#c7d2fe", side: "#a5b4fc" },
+  vanity: { top: "#a98a67", front: "#8a6f52", side: "#6b553e" }, // walnut
+  basin: { top: "#f6f4ef", front: "#e4e0d7", side: "#cbc6ba" }, // vitreous china
+  toilet: { top: "#f7f5f0", front: "#e6e2d9", side: "#cdc8bc" },
+  smart_toilet: { top: "#f4f3f1", front: "#e0ddd7", side: "#c5c1b8" },
+  shower: { top: "#dfe7e733", front: "#b9cbcb44", side: "#8fa9a955" }, // low-iron glass
+  smart_shower: { top: "#dde8e633", front: "#b2c9c444", side: "#87a49d55" },
+  bathtub: { top: "#f2f0ea", front: "#ddd9cf", side: "#bfbab0" }, // cast acrylic
+  storage: { top: "#8d8578", front: "#6f685d", side: "#544e46" }, // oak, stained
+  mirror: { top: "#d6d9d6", front: "#bcc3c2", side: "#9aa3a2" }, // silvered glass
 };
+
+/** Darken a hex toward black by `factor`, so one accent can light three faces
+ *  of the same box instead of three unrelated blues. */
+function shade(hex: string, factor: number): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const clamp = (c: number) => Math.max(0, Math.min(255, Math.round(c * factor)));
+  const r = clamp((n >> 16) & 255);
+  const g = clamp((n >> 8) & 255);
+  const b = clamp(n & 255);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** Canvas cannot read CSS variables, so pull the ones it needs off the root
+ *  element each render. Without this the room stays lit at noon while the rest
+ *  of the studio goes dark. */
+function readSceneTokens() {
+  const css = getComputedStyle(document.documentElement);
+  const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+  const dark = document.documentElement.getAttribute("data-theme") === "dark";
+  return {
+    dark,
+    floorNear: dark ? "#232120" : "#efece5",
+    floorFar: dark ? "#1a1816" : "#e0dcd2",
+    floorEdge: dark ? "#3a3631" : "#c9c3b5",
+    grout: dark ? "rgba(255, 250, 240, 0.07)" : "rgba(120, 112, 98, 0.22)",
+    wallLit: dark ? "#242220" : "#f7f5f0",
+    wallMid: dark ? "#201e1c" : "#f0ede5",
+    wallShade: dark ? "#1b1918" : "#e8e4da",
+    wallEdge: dark ? "rgba(255, 250, 240, 0.09)" : "rgba(150, 142, 128, 0.45)",
+    label: dark ? "#f0ede6" : "#1a1917",
+    dim: v("--ink-3", dark ? "#78736b" : "#8b8880"),
+    brass: v("--brass", dark ? "#c2a06a" : "#99783f"),
+    onBrass: dark ? "#141210" : "#fffdf8",
+    font: v("--font-sans", "system-ui, sans-serif"),
+  };
+}
+
+/** Re-render the scene when the studio switches between light and dark. */
+function useThemeKey(): string {
+  const [key, setKey] = useState<string>(
+    () => document.documentElement.getAttribute("data-theme") || "light"
+  );
+  useEffect(() => {
+    const target = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setKey(target.getAttribute("data-theme") || "light");
+    });
+    observer.observe(target, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => observer.disconnect();
+  }, []);
+  return key;
+}
 
 export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
   layout,
@@ -25,6 +84,7 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
   onSelectProduct,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const themeKey = useThemeKey();
 
   // Orbit camera state
   const [yaw, setYaw] = useState<number>(45); // degrees horizontal
@@ -88,6 +148,8 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
+    const scene = readSceneTokens();
+
     const roomW = layout.room_width_in || 72;
     const roomL = layout.room_length_in || 96;
     const roomH = 96; // 8ft ceiling
@@ -144,17 +206,17 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
 
     // Floor fill
     const floorGrad = ctx.createLinearGradient(fP0.x, fP0.y, fP2.x, fP2.y);
-    floorGrad.addColorStop(0, "#eceae4");
-    floorGrad.addColorStop(1, "#dfdcd4");
+    floorGrad.addColorStop(0, scene.floorNear);
+    floorGrad.addColorStop(1, scene.floorFar);
     ctx.fillStyle = floorGrad;
     ctx.fill();
-    ctx.strokeStyle = "#c8c4b8";
+    ctx.strokeStyle = scene.floorEdge;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
     // Floor grid lines (tiles every 12 inches)
     ctx.save();
-    ctx.strokeStyle = "rgba(180, 175, 165, 0.4)";
+    ctx.strokeStyle = scene.grout;
     ctx.lineWidth = 0.8;
     for (let gx = 12; gx < roomW; gx += 12) {
       const pA = project(gx, 0, 0);
@@ -190,7 +252,7 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
       ctx.closePath();
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.strokeStyle = "rgba(180, 175, 165, 0.6)";
+      ctx.strokeStyle = scene.wallEdge;
       ctx.lineWidth = 1;
       ctx.stroke();
     };
@@ -203,19 +265,19 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
 
     // North wall (y = 0)
     if (sinYaw > -0.2) {
-      drawWall(fP0, fP1, cP1, cP0, "#f5f3ee");
+      drawWall(fP0, fP1, cP1, cP0, scene.wallLit);
     }
     // West wall (x = 0)
     if (cosYaw < 0.2) {
-      drawWall(fP3, fP0, cP0, cP3, "#ece9e1");
+      drawWall(fP3, fP0, cP0, cP3, scene.wallShade);
     }
     // South wall (y = roomL)
     if (sinYaw < 0.2) {
-      drawWall(fP2, fP3, cP3, cP2, "#f7f5ef");
+      drawWall(fP2, fP3, cP3, cP2, scene.wallLit);
     }
     // East wall (x = roomW)
     if (cosYaw > -0.2) {
-      drawWall(fP1, fP2, cP2, cP1, "#e8e5dc");
+      drawWall(fP1, fP2, cP2, cP1, scene.wallMid);
     }
 
     // Clearance envelopes on the floor
@@ -237,10 +299,10 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
       ctx.lineTo(cp2.x, cp2.y);
       ctx.lineTo(cp3.x, cp3.y);
       ctx.closePath();
-      ctx.fillStyle = "rgba(31, 107, 74, 0.08)";
+      ctx.fillStyle = scene.dark ? "rgba(127, 179, 146, 0.09)" : "rgba(60, 107, 80, 0.08)";
       ctx.fill();
       ctx.setLineDash([4, 3]);
-      ctx.strokeStyle = "rgba(31, 107, 74, 0.4)";
+      ctx.strokeStyle = scene.dark ? "rgba(127, 179, 146, 0.38)" : "rgba(60, 107, 80, 0.4)";
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.restore();
@@ -302,9 +364,9 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
       const v011 = project(x0, y1, z1);
 
       const palette = FIXTURE_3D_COLORS[fixture.category] || {
-        top: "#d1d5db",
-        front: "#9ca3af",
-        side: "#6b7280",
+        top: "#cac4b8",
+        front: "#a49d90",
+        side: "#7d766b",
       };
 
       // Draw Top Face
@@ -314,9 +376,9 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
       ctx.lineTo(v111.x, v111.y);
       ctx.lineTo(v011.x, v011.y);
       ctx.closePath();
-      ctx.fillStyle = isSelected ? "#3b82f6" : palette.top;
+      ctx.fillStyle = isSelected ? scene.brass : palette.top;
       ctx.fill();
-      ctx.strokeStyle = isSelected ? "#1d4ed8" : "rgba(0,0,0,0.15)";
+      ctx.strokeStyle = isSelected ? shade(scene.brass, 0.62) : "rgba(0, 0, 0, 0.14)";
       ctx.lineWidth = isSelected ? 2 : 1;
       ctx.stroke();
 
@@ -327,9 +389,9 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
       ctx.lineTo(v111.x, v111.y);
       ctx.lineTo(v011.x, v011.y);
       ctx.closePath();
-      ctx.fillStyle = isSelected ? "#2563eb" : palette.front;
+      ctx.fillStyle = isSelected ? shade(scene.brass, 0.86) : palette.front;
       ctx.fill();
-      ctx.strokeStyle = isSelected ? "#1d4ed8" : "rgba(0,0,0,0.15)";
+      ctx.strokeStyle = isSelected ? shade(scene.brass, 0.62) : "rgba(0, 0, 0, 0.14)";
       ctx.stroke();
 
       // Draw East/Side Face
@@ -339,45 +401,47 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
       ctx.lineTo(v111.x, v111.y);
       ctx.lineTo(v101.x, v101.y);
       ctx.closePath();
-      ctx.fillStyle = isSelected ? "#1d4ed8" : palette.side;
+      ctx.fillStyle = isSelected ? shade(scene.brass, 0.7) : palette.side;
       ctx.fill();
-      ctx.strokeStyle = isSelected ? "#1d4ed8" : "rgba(0,0,0,0.15)";
+      ctx.strokeStyle = isSelected ? shade(scene.brass, 0.62) : "rgba(0, 0, 0, 0.14)";
       ctx.stroke();
 
       // Label on top of fixture
       const centerTop = project(x0 + w / 2, y0 + d / 2, z1);
       ctx.save();
-      ctx.font = "bold 10px 'Inter', sans-serif";
+      ctx.font = `600 10px ${scene.font}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = isSelected ? "#ffffff" : "#1e293b";
-      ctx.fillText(fixture.category.toUpperCase(), centerTop.x, centerTop.y - 2);
+      ctx.fillStyle = isSelected ? scene.onBrass : scene.label;
+      ctx.fillText(fixture.category.replace(/_/g, " ").toUpperCase(), centerTop.x, centerTop.y - 2);
       ctx.restore();
     });
 
     // Dimension indicators
     ctx.save();
-    ctx.font = "600 11px 'Inter', sans-serif";
-    ctx.fillStyle = "#64748b";
+    ctx.font = `500 11px ${scene.font}`;
+    ctx.fillStyle = scene.dim;
     const dimNorth = project(roomW / 2, -4, 0);
     ctx.fillText(`${(roomW / 12).toFixed(1)}′`, dimNorth.x, dimNorth.y);
     const dimWest = project(-4, roomL / 2, 0);
     ctx.fillText(`${(roomL / 12).toFixed(1)}′`, dimWest.x, dimWest.y);
     ctx.restore();
-  }, [layout, yaw, pitch, zoom, selectedProductId]);
+  }, [layout, yaw, pitch, zoom, selectedProductId, themeKey]);
 
   return (
     <div className="canvas-3d-wrapper">
       {/* 3D Truth & Visualization Status Banner */}
       <div className="canvas-3d-banner">
         <div className="banner-truth-tag">
-          <span className="badge-3d-status">VISUALIZATION AID</span>
+          <span className="badge-3d-status">Visual aid</span>
           <span className="truth-text">
             3D perspective reflects computed 2D spatial coordinates. Spatial engineering intent is verified on the 2D plan.
           </span>
         </div>
         <div className="canvas-3d-controls-hint">
-          <span>🖱 Drag to Orbit · Scroll to Zoom</span>
+          <span>
+          <Icon name="mouse" size={13} /> Drag to orbit · scroll to zoom
+        </span>
         </div>
       </div>
 
@@ -406,23 +470,23 @@ export const Bathroom3DCanvas: React.FC<Bathroom3DCanvasProps> = ({
             }}
             title="Reset to default architectural isometric angle"
           >
-            ↺ Reset Angle
+            <Icon name="refresh" size={13} /> Reset angle
           </button>
           <button
             type="button"
             className="btn-orbit-tool"
             onClick={() => setZoom((z) => Math.min(2.0, z + 0.2))}
-            title="Zoom In"
+            title="Zoom in"
           >
-            ＋
+            <Icon name="plus" size={13} title="Zoom in" />
           </button>
           <button
             type="button"
             className="btn-orbit-tool"
             onClick={() => setZoom((z) => Math.max(0.6, z - 0.2))}
-            title="Zoom Out"
+            title="Zoom out"
           >
-            －
+            <Icon name="minus" size={13} title="Zoom out" />
           </button>
         </div>
       </div>

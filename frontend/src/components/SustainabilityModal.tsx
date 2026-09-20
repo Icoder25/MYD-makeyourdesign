@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { formatLitres } from "../api";
 import type { CandidatePlan, DesignState } from "../types";
 import { useEscapeToClose } from "../useEscapeToClose";
+import { Icon } from "./Icon";
 
 interface SustainabilityModalProps {
   isOpen: boolean;
@@ -39,28 +40,28 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="KOHLER Water & Sustainability Intelligence"
+        aria-label="Water & energy"
         style={{ maxWidth: "760px", width: "95vw" }}
       >
         <div className="modal-header">
           <div>
-            <span className="badge-luxury">ENVIRONMENTAL INTELLIGENCE</span>
+            <span className="badge-luxury">Water & energy</span>
             <h2 style={{ margin: "6px 0 0", fontSize: "20px", fontWeight: 700, color: "var(--ink-900)" }}>
               Water Conservation &amp; Efficiency Report
             </h2>
           </div>
           <button className="btn-icon-close" onClick={onClose} aria-label="Close modal">
-            ✕
+            <Icon name="close" size={13} />
           </button>
         </div>
 
         {/* Primary Headline Result */}
         <div className="sustainability-hero-card">
           <div className="hero-savings-stat">
-            <span className="savings-badge">ANNUAL ESTIMATE</span>
+            <span className="savings-badge">Annual estimate</span>
             <div className="savings-number-row">
               <span className="savings-number">{percentSaved.toFixed(0)}%</span>
-              <span className="savings-label">Below Standard Baseline</span>
+              <span className="savings-label">below the standard baseline</span>
             </div>
             <p className="savings-volume">
               Conserves <strong>{formatLitres(annualSavedLitres)}</strong> of clean water every year.
@@ -69,7 +70,7 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
 
           <div className="hero-metrics-pills">
             <div className="metric-pill">
-              <span className="pill-title">ANNUAL SAVINGS</span>
+              <span className="pill-title">Annual saving</span>
               <span className="pill-val text-green">{formatLitres(annualSavedLitres)}</span>
             </div>
             <div className="metric-pill">
@@ -77,7 +78,7 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
               <span className="pill-val">~{estimatedCo2SavedKg} kg CO₂e / yr</span>
             </div>
             <div className="metric-pill">
-              <span className="pill-title">COMPLIANCE</span>
+              <span className="pill-title">Compliance</span>
               <span className="pill-val">EPA WaterSense</span>
             </div>
           </div>
@@ -92,9 +93,9 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
 
           <div className="savings-reasons-grid">
             <div className="reason-card">
-              <span className="reason-icon">🚽</span>
+              <Icon name="toilet" size={18} className="reason-icon" />
               <div className="reason-content">
-                <strong>High-Efficiency Flushing</strong>
+                <strong>High-efficiency flushing</strong>
                 <p>
                   Optimized siphon jet bowl geometries achieve complete clearing with 1.28 gallons per flush compared to
                   older 1.6 or 3.5 GPF standard baseline models.
@@ -103,7 +104,7 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
             </div>
 
             <div className="reason-card">
-              <span className="reason-icon">🚿</span>
+              <Icon name="shower" size={18} className="reason-icon" />
               <div className="reason-content">
                 <strong>Katalyst™ Air-Induction Showers</strong>
                 <p>
@@ -114,9 +115,9 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
             </div>
 
             <div className="reason-card">
-              <span className="reason-icon">🚰</span>
+              <Icon name="basin" size={18} className="reason-icon" />
               <div className="reason-content">
-                <strong>Laminar Aerated Tapware</strong>
+                <strong>Laminar aerated tapware</strong>
                 <p>
                   Lavatory faucets utilize laminar aerators delivering a splash-free 1.2 GPM stream, saving up to 45% over
                   conventional 2.2 GPM faucets.
@@ -129,13 +130,21 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
         {/* Expandable Fixture Details */}
         <div className="sustainability-details-section">
           <div className="details-header-row">
-            <h4>Fixture-by-Fixture Efficiency Schedule</h4>
+            <h4>Efficiency by fixture</h4>
             <button
               type="button"
               className="btn-toggle-details"
               onClick={() => setShowTechnicalMath(!showTechnicalMath)}
             >
-              {showTechnicalMath ? "Hide Technical Data ▲" : "Show Calculation Math ▼"}
+              {showTechnicalMath ? (
+              <>
+                Hide technical data <Icon name="caretUp" size={11} />
+              </>
+            ) : (
+              <>
+                Show calculation math <Icon name="caretDown" size={11} />
+              </>
+            )}
             </button>
           </div>
 
@@ -145,8 +154,8 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
                 <tr>
                   <th>Fixture</th>
                   <th>Recorded Flow / Flush</th>
-                  <th>Baseline Comparison</th>
-                  <th>Annual Consumption</th>
+                  <th>Baseline comparison</th>
+                  <th>Annual consumption</th>
                 </tr>
               </thead>
               <tbody>
@@ -186,9 +195,7 @@ export const SustainabilityModal: React.FC<SustainabilityModalProps> = ({
         </div>
 
         <div className="modal-footer" style={{ marginTop: "16px" }}>
-          <button type="button" className="primary" onClick={onClose}>
-            Close Report
-          </button>
+          <button type="button" className="primary" onClick={onClose}>Close</button>
         </div>
       </div>
     </div>
