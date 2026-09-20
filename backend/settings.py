@@ -9,7 +9,17 @@ not an error.
 import os
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict
+
+load_dotenv()
+
+
+# Google retires Gemini model ids on a schedule, and a 404 from a retired id is
+# swallowed by the AI layer's fallback — the product keeps working but silently
+# stops using the model. Pin a currently-served stable release and move it
+# deliberately rather than discovering the retirement in a demo.
+DEFAULT_MODEL = "gemini-2.5-flash"
 
 
 def _flag(name: str, default: bool = True) -> bool:
@@ -28,9 +38,9 @@ class Settings(BaseModel):
 
     gemini_api_key: str | None = None
     vision_enabled: bool = True
-    vision_model: str = "gemini-2.0-flash"
+    vision_model: str = DEFAULT_MODEL
     llm_enabled: bool = True
-    llm_model: str = "gemini-2.0-flash"
+    llm_model: str = DEFAULT_MODEL
 
     @property
     def vision_available(self) -> bool:
@@ -51,7 +61,7 @@ def get_settings() -> Settings:
         catalog_path=os.getenv("CATALOG_PATH"),
         gemini_api_key=os.getenv("GEMINI_API_KEY") or None,
         vision_enabled=_flag("VISION_ENABLED"),
-        vision_model=os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash"),
+        vision_model=os.getenv("GEMINI_VISION_MODEL", DEFAULT_MODEL),
         llm_enabled=_flag("LLM_ENABLED"),
-        llm_model=os.getenv("GEMINI_LLM_MODEL", "gemini-2.0-flash"),
+        llm_model=os.getenv("GEMINI_LLM_MODEL", DEFAULT_MODEL),
     )

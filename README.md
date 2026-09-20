@@ -104,7 +104,7 @@ backend/
   services/        planning orchestration, in-memory project store
 frontend/          React + TypeScript SPA (Vite)
 catalog/           products.json — the curated product data
-tests/             130 tests, including an adversarial suite
+tests/             197 tests, including an adversarial suite
 sample-data/       golden_path.py — the demo, as a runnable check
 docs/              research, spec, architecture, prompts, verified facts
 ```
@@ -142,9 +142,9 @@ conversational modification all work.
 | `CATALOG_PATH` | `catalog/products.json` | — |
 | `GEMINI_API_KEY` | _(none)_ | Vision and LLM layers use fallbacks |
 | `VISION_ENABLED` | `true` | Set `false` to force manual-input path |
-| `GEMINI_VISION_MODEL` | `gemini-2.0-flash` | — |
+| `GEMINI_VISION_MODEL` | `gemini-2.5-flash` | — |
 | `LLM_ENABLED` | `true` | Set `false` to force the keyword parser |
-| `GEMINI_LLM_MODEL` | `gemini-2.0-flash` | — |
+| `GEMINI_LLM_MODEL` | `gemini-2.5-flash` | — |
 
 ### Running
 
@@ -163,7 +163,7 @@ Open <http://localhost:5173>. API docs at <http://localhost:8000/docs>.
 ### Verifying it works
 
 ```bash
-python -m pytest -q                    # 130 tests
+python -m pytest -q                    # 197 tests
 python sample-data/golden_path.py      # rehearses the demo end-to-end
 ```
 
@@ -263,7 +263,25 @@ Stated plainly, because a planning tool that hides these is dangerous.
 - **Hidden plumbing, rough-in, electrical capacity and structure are unknown** and stay
   unknown until you verify them.
 - **The layout is first-fit, not optimal.** A better arrangement may exist.
-- **Projects are in-memory** and do not survive a restart.
+- **Projects are in-memory** and do not survive a restart. There is no database. The
+  browser keeps your saved designs in `localStorage`; reopening one after the backend
+  has restarted rebuilds the planning session from the saved brief and starts again
+  at V1, so version history earlier than that is not recoverable.
+- **The AI layers need quota, not just a key.** With a Gemini free-tier key the intent
+  and vision calls are rate limited (20 requests/minute at the time of writing) and
+  will fall back to the deterministic path once exhausted. The fallback is complete —
+  the whole product works without any key — but the fallback is now logged at WARNING
+  so an exhausted quota is visible rather than silent.
+- **Gemini model ids are retired on a schedule.** `GEMINI_LLM_MODEL` and
+  `GEMINI_VISION_MODEL` are pinned to a currently-served release; a `404 NOT_FOUND`
+  from the provider means the pin needs moving.
+- **360° is a schematic walk-around**, generated from the solved layout — four wall
+  elevations, not a rendered panorama or photography.
+- **AR is not implemented.** The tab explains what it would need (per-product USDZ and
+  glTF assets, which the prototype catalog does not carry) and points at the 2D, 3D
+  and elevation views instead.
+- **Finalization is a sign-off in the browser**, not a server-side lock. It records
+  that the checklist was confirmed; it does not prevent later edits through the API.
 - **This is a planning aid, not an engineering drawing.** Final dimensions, plumbing,
   electrical, structural and local-code requirements must be verified by a qualified
   professional before installation.

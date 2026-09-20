@@ -2,8 +2,14 @@ import json
 import os
 from typing import Protocol
 
+from ..llm.schema import gemini_response_schema
 from .models import BathroomVisionEvidence
 from .prompt import SYSTEM_PROMPT
+
+
+# Gemini retires model ids. A dated id that 404s takes the whole vision leg
+# down silently, so this tracks a currently-served stable release.
+DEFAULT_VISION_MODEL = "gemini-2.5-flash"
 
 
 class VisionProvider(Protocol):
@@ -14,7 +20,7 @@ class VisionProvider(Protocol):
 class GeminiVisionProvider:
     def __init__(self, api_key: str | None = None, model: str | None = None) -> None:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
-        self.model = model or os.getenv("GEMINI_VISION_MODEL", "gemini-2.0-flash")
+        self.model = model or os.getenv("GEMINI_VISION_MODEL", DEFAULT_VISION_MODEL)
 
     async def analyze(self, image_bytes: bytes) -> BathroomVisionEvidence:
         if not self.api_key:
@@ -32,15 +38,10 @@ class GeminiVisionProvider:
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
                 response_mime_type="application/json",
-                response_schema=BathroomVisionEvidence,
+                response_schema=gemini_response_schema(BathroomVisionEvidence),
             ),
         )
 
-        parsed = getattr(response, "parsed", None)
-        if isinstance(parsed, BathroomVisionEvidence):
-            return parsed
-        if parsed is not None:
-            return BathroomVisionEvidence.model_validate(parsed)
         text = getattr(response, "text", None)
         if not text:
             raise ValueError("Gemini returned no structured vision response")

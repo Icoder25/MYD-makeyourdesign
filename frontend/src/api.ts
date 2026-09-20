@@ -1,7 +1,19 @@
 import type {
   BathroomBrief,
+  CatalogResponse,
+  DesignState,
+  DesignStateDiff,
+  ExportPackageResponse,
+  ImpactReport,
+  ImpactRequest,
+  InspirationApplyResponse,
+  InspirationPresetsResponse,
+  InspirationRequest,
   ModifyResponse,
   PlanResponse,
+  ProjectHistoryResponse,
+  TradeoffApplyResponse,
+  TradeoffOption,
   VisionEvidence,
 } from "./types";
 
@@ -65,6 +77,9 @@ export const api = {
       llm_available: boolean;
     }>("/api/v1/health"),
 
+  getCatalog: () => request<CatalogResponse>("/api/v1/catalog"),
+
+
   createPlan: (brief: PlanRequest) =>
     request<PlanResponse>("/api/v1/plan", {
       method: "POST",
@@ -72,6 +87,11 @@ export const api = {
     }),
 
   getPlan: (projectId: string) => request<PlanResponse>(`/api/v1/plan/${projectId}`),
+
+  getDesignState: (projectId: string, versionId?: string) =>
+    request<DesignState>(
+      `/api/v1/plan/${projectId}/state${versionId ? `?version_id=${versionId}` : ""}`,
+    ),
 
   resolve: (projectId: string, body: Record<string, unknown>) =>
     request<PlanResponse>(`/api/v1/plan/${projectId}/resolve`, {
@@ -84,6 +104,51 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message }),
     }),
+
+  impact: (projectId: string, req: ImpactRequest) =>
+    request<ImpactReport>(`/api/v1/plan/${projectId}/impact`, {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+
+  applyTradeoff: (projectId: string, tradeoffId: string, tradeoff?: TradeoffOption) =>
+    request<TradeoffApplyResponse>(`/api/v1/plan/${projectId}/tradeoff`, {
+      method: "POST",
+      body: JSON.stringify({ tradeoff_id: tradeoffId, tradeoff }),
+    }),
+
+  getHistory: (projectId: string) =>
+    request<ProjectHistoryResponse>(`/api/v1/plan/${projectId}/history`),
+
+  getDiff: (projectId: string, fromVersion = "v1", toVersion = "v2") =>
+    request<DesignStateDiff>(
+      `/api/v1/plan/${projectId}/diff?from_version=${fromVersion}&to_version=${toVersion}`,
+    ),
+
+  getInspirationPresets: () =>
+    request<InspirationPresetsResponse>("/api/v1/inspiration/presets"),
+
+  applyInspiration: (projectId: string, req: InspirationRequest) =>
+    request<InspirationApplyResponse>(`/api/v1/plan/${projectId}/inspiration`, {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+
+  getExportPackage: (
+    projectId: string,
+    role: "client" | "designer" | "dealer" = "client",
+    versionId?: string,
+  ) =>
+    request<ExportPackageResponse>(
+      `/api/v1/plan/${projectId}/export?role=${role}${versionId ? `&version_id=${versionId}` : ""}`,
+    ),
+
+  getExportDocumentUrl: (
+    projectId: string,
+    role: "client" | "designer" | "dealer" = "client",
+    versionId?: string,
+  ) =>
+    `${BASE}/api/v1/plan/${projectId}/export/document?role=${role}${versionId ? `&version_id=${versionId}` : ""}`,
 
   analyseImage: async (projectId: string, file: File): Promise<VisionEvidence> => {
     const form = new FormData();

@@ -5,11 +5,13 @@ it. `computed_by` is not decoration — it is the answer to "how do I know the
 language model did not invent this", and it is checked by tests.
 """
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend.constraints.models import ConfigurationReport, Product
+from backend.designpulse.impact_engine import ImpactReport, TradeoffOption
+from backend.designpulse.models import DesignState, DesignStateDiff
 from backend.layout.models import DoorSpec, RoomLayout
 from backend.recommendation.models import (
     NoCompliantConfigurationResult,
@@ -158,3 +160,131 @@ class HealthResponse(BaseModel):
     vision_available: bool
     llm_available: bool
     deterministic_planner_available: Literal[True] = True
+
+
+# --- DesignPulse API Contracts ------------------------------------------------
+
+
+class ImpactRequest(BaseModel):
+    """Request for running DesignPulse change impact analysis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    category: str | None = None
+    action: Literal["replace_product", "change_dimension", "add_category", "remove_category"] = (
+        "replace_product"
+    )
+    target_product_id: str | None = None
+    target_dimension: dict[str, float] | None = None
+    message: str | None = None
+
+
+class TradeoffApplyRequest(BaseModel):
+    """Request to apply a chosen trade-off and construct a new active DesignState."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    tradeoff_id: str
+    tradeoff: TradeoffOption | None = None
+    modification: ImpactRequest | None = None
+
+
+class TradeoffApplyResponse(BaseModel):
+    """Response containing the newly activated V2 DesignState and diff from V1."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    project_id: str
+    version_id: str
+    version_number: int
+    v2: DesignState
+    diff: DesignStateDiff
+
+
+class VersionSummary(BaseModel):
+    """Metadata summary of a specific design version in a project's timeline."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version_id: str
+    version_number: int
+    parent_version_id: str | None = None
+    timestamp: str
+    total_price: float
+    currency: str = "INR"
+    is_active: bool = False
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProjectHistoryResponse(BaseModel):
+    """The timeline of design versions for a project."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    project_id: str
+    active_version_id: str
+    versions: list[VersionSummary]
+
+
+# --- Inspiration & Style Preset API Contracts --------------------------------
+
+
+class InspirationStylePreset(BaseModel):
+    """Curated architectural style preset."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    title: str
+    tagline: str
+    description: str
+    primary_materials: list[str]
+    hardware_finishes: list[str]
+    palette_tones: list[str]  # Hex color codes for aesthetic representation
+    recommended_families: list[str]
+    style_keywords: list[str]
+    mood_imagery_keywords: list[str]
+
+
+class InspirationPresetsResponse(BaseModel):
+    """List of all curated KOHLER style directions."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    presets: list[InspirationStylePreset]
+
+
+class InspirationRequest(BaseModel):
+    """Request to match or apply an inspiration preset to a project."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    preset_id: str | None = None
+    query: str | None = None
+
+
+class InspirationApplyResponse(BaseModel):
+    """Response when an inspiration preset is applied to a project brief."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    project_id: str
+    preset: InspirationStylePreset
+    applied_styles: list[str]
+    plan: PlanResponse
+    state: DesignState
+
+
+# --- Role-Separated Export Package Contracts ----------------------------------
+
+from backend.export.generator import (  # noqa: E402
+    ClientExportData,
+    ClientProductItem,
+    DealerBOMItem,
+    DealerExportData,
+    DesignerClearanceItem,
+    DesignerExportData,
+    ExportPackageResponse,
+)
+
+

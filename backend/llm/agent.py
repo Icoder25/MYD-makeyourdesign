@@ -16,11 +16,14 @@ to the deterministic path and the user still gets a complete answer.
 """
 
 import asyncio
+import logging
 
 from ..api.schemas import BathroomBrief, ModifyResponse, PlanResponse
 from ..services.planner import create_plan
 from ..settings import get_settings
 from .intent import ModificationIntent, extract_intent_keywords, extract_intent_llm
+
+logger = logging.getLogger(__name__)
 
 LLM_TIMEOUT_SECONDS = 12.0
 
@@ -76,7 +79,11 @@ async def interpret(message: str, plan: PlanResponse) -> tuple[ModificationInten
         except Exception:
             # Timeout, network failure, malformed JSON, schema violation — all
             # handled identically, because the fallback is genuinely capable.
-            pass
+            # Logged, though: a permanently unreachable provider must not look
+            # the same as a user who said nothing actionable.
+            logger.warning(
+                "LLM intent extraction failed; using deterministic keywords", exc_info=True
+            )
     return extract_intent_keywords(message), "deterministic_keywords"
 
 

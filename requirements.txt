@@ -1,6 +1,7 @@
 fastapi>=0.115,<1
 uvicorn[standard]>=0.30,<1
 pydantic>=2.8,<3
+python-dotenv>=1.0,<2
 Pillow>=10.4,<12
 google-genai>=1.0,<2
 python-multipart>=0.0.9,<1

@@ -1,3 +1,17 @@
+> **Historical document — pre-implementation design record.**
+>
+> This was written before any code existed and describes a system that was
+> *planned*. Parts of it were not built as specified: the frontend is Vite +
+> React rather than Next.js, the agent does not use LLM function-calling (intent
+> extraction is a single structured call with a deterministic fallback), and the
+> endpoint set differs. DesignPulse, versioning, decision memory and export are
+> not in here at all — they came later.
+>
+> It is kept because the decisions and the reasoning behind them are worth
+> reading. For the architecture as built, see **[architecture.md](architecture.md)**.
+
+---
+
 # KOHLER AI BathPlan — Implementation Architecture
 
 **Phase:** Architecture only. No application code in this document.

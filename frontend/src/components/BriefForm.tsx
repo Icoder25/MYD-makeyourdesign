@@ -182,18 +182,19 @@ export function BriefForm({ onSubmit, onImageSelected, busy, visionAvailable, im
         <input
           type="file"
           accept="image/*"
-          disabled={!visionAvailable}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) onImageSelected(file);
           }}
         />
         <span className="hint">
-          {visionAvailable
-            ? imageName
-              ? `Selected: ${imageName}`
-              : "A photo adds context only. It can never establish a dimension or a rough-in."
-            : "Image analysis is not configured. The planner works fully without it."}
+          {imageName ? (
+            <strong style={{ color: "var(--accent)" }}>Selected: {imageName}</strong>
+          ) : visionAvailable ? (
+            "A photo adds advisory visual context. It can never establish a dimension or a rough-in."
+          ) : (
+            "Attach site photo for architectural visual reference. (AI vision analysis requires GEMINI_API_KEY)."
+          )}
         </span>
       </label>
 

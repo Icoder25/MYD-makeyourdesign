@@ -16,9 +16,36 @@ class BathroomVisionAnalyzer:
         prepared_image = preprocess_image(image_bytes)
         evidence = await self.provider.analyze(prepared_image)
         evidence = BathroomVisionEvidence.model_validate(evidence)
+
+        # Post-process detected objects to apply classification heuristic and advisory regions
+        processed_objects = []
+        for obj in evidence.detected_objects:
+            # GUARDRAIL 1: 0.7 is strictly an application-level classification heuristic, NOT physical verification
+            status = "observed" if obj.confidence >= 0.7 else "estimated"
+
+            # GUARDRAIL 3: Approximate wall region is purely advisory, never a hard layout constraint
+            center_x = obj.bounding_box.x + (obj.bounding_box.width / 2.0)
+            if center_x < 0.35:
+                region = "west"
+            elif center_x > 0.65:
+                region = "east"
+            else:
+                region = "north"
+
+            processed_objects.append(
+                obj.model_copy(
+                    update={
+                        "observation_status": status,
+                        "approximate_wall_region": region,
+                        "dimension_status": "unknown",  # Physical dimensions require measurement
+                    }
+                )
+            )
+
         return evidence.model_copy(
             update={
                 "authoritative": False,
+                "detected_objects": processed_objects,
                 "overall_confidence": calculate_overall_confidence(evidence),
             }
         )

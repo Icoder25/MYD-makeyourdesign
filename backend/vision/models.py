@@ -18,6 +18,10 @@ class BoundingBox(BaseModel):
         return self
 
 
+ObservationStatus = Literal["observed", "estimated", "unknown", "requires_verification"]
+ApproximateWallRegion = Literal["north", "south", "east", "west", "center", "unknown"]
+
+
 class DetectedObject(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -35,6 +39,9 @@ class DetectedObject(BaseModel):
     ]
     confidence: float = Field(ge=0.0, le=1.0)
     bounding_box: BoundingBox
+    observation_status: ObservationStatus = "observed"
+    approximate_wall_region: ApproximateWallRegion = "unknown"
+    dimension_status: Literal["unknown", "estimated", "measured"] = "unknown"
 
 
 class FixtureZone(BaseModel):

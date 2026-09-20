@@ -15,6 +15,7 @@ from backend.api.schemas import BathroomBrief
 from backend.llm.agent import apply_intent
 from backend.llm.intent import ModificationIntent, extract_intent_keywords
 from backend.main import create_app
+from backend.settings import get_settings
 from backend.services.store import store
 
 GOLDEN_BRIEF = {
@@ -35,6 +36,20 @@ def client() -> TestClient:
 @pytest.fixture()
 def project(client) -> str:
     return client.post("/api/v1/plan", json=GOLDEN_BRIEF).json()["project_id"]
+
+
+@pytest.fixture()
+def no_api_key(monkeypatch) -> None:
+    """Run the request as an unconfigured install would.
+
+    Asserting the deterministic path without this only proves the model leg
+    happened to be unreachable — which is how a completely broken LLM
+    integration once passed as "the fallback works".
+    """
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 # --- Deterministic intent extraction -----------------------------------------
@@ -147,7 +162,7 @@ def test_keep_budget_does_not_alter_the_budget() -> None:
 # --- End-to-end modification --------------------------------------------------
 
 
-def test_modification_works_with_no_api_key_configured(client, project) -> None:
+def test_modification_works_with_no_api_key_configured(client, project, no_api_key) -> None:
     """The product's conversation must not depend on an API key being present."""
     body = client.post(
         f"/api/v1/plan/{project}/modify",
