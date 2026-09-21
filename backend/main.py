@@ -18,7 +18,7 @@ from .vision.provider import GeminiVisionProvider
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="KOHLER AI BathPlan",
+        title="AI BathPlan",
         description=(
             "Constraint-aware bathroom planning. Feasibility, dimensions, pricing and "
             "water calculations are deterministic; the language model explains results "

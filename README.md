@@ -1,11 +1,11 @@
-# KOHLER AI BathPlan
+# AI BathPlan — Intelligent Bathroom Design & Planning
 
 **An AI bathroom planning agent that turns space, budget, preferences and priorities
 into feasible, explainable, sustainability-aware configurations.**
 
 > The AI can imagine a bathroom. The constraint engine decides whether it survives reality.
 
-Built for the KOHLER–MIT-WPU AI Research Lab Program, Track 1.
+Built for an AI bathroom design research program.
 
 ---
 
