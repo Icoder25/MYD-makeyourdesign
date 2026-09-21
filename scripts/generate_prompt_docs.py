@@ -98,7 +98,7 @@ Every prompt here is optional. With no API key configured:
 | Vision | Manual dimension entry | Full planning; no photo context |
 
 The product is fully usable in this mode. This is not a degraded demo path — it
-is the tested default, and the entire 130-test suite runs against it.
+is the tested default, and the entire 197-test suite runs against it.
 
 ---
 

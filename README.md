@@ -310,11 +310,25 @@ Stated plainly, because a planning tool that hides these is dangerous.
 | [docs/bathplan-architecture.md](docs/bathplan-architecture.md) | Architecture and module boundaries |
 | [docs/verified-facts.md](docs/verified-facts.md) | Every number classified verified / assumption / illustrative, with sources |
 | [docs/prompts.md](docs/prompts.md) | Prompt documentation, generated from the running code |
+| [docs/KOHLER_AI_BathPlan_Prompt_Documentation.pdf](docs/KOHLER_AI_BathPlan_Prompt_Documentation.pdf) | The same prompt documentation, rendered for submission |
+| [docs/KOHLER AI BathPlan Pitch Deck.pdf](docs/KOHLER%20AI%20BathPlan%20Pitch%20Deck.pdf) | The 4-slide deck |
+| [docs/presentation.pptx](docs/presentation.pptx) | The same deck as an editable PowerPoint file |
 | [docs/research.md](docs/research.md) | Market and problem research |
 | [docs/competitor-matrix.md](docs/competitor-matrix.md) | Evidence-based capability comparison |
 | [docs/innovation-gap.md](docs/innovation-gap.md) | Where the defensible opportunity is |
 | [docs/kohler-current-state.md](docs/kohler-current-state.md) | KOHLER capability audit |
 | [PROJECT_STATE.md](PROJECT_STATE.md) | Current build state and decisions |
+
+The four generated artefacts are built from the code, not written by hand — the prompt
+document is read out of `backend/llm/prompts.py`, and the plan on slide 3 of both decks
+is the layout solver's real output for the demo brief. Rebuild them with:
+
+```bash
+pip install -r requirements-docs.txt
+python scripts/generate_prompt_docs.py   # docs/prompts.md
+python scripts/build_pdfs.py             # docs/KOHLER_AI_BathPlan_Prompt_Documentation.pdf, docs/KOHLER AI BathPlan Pitch Deck.pdf
+python scripts/build_pptx.py             # docs/presentation.pptx
+```
 
 ---
 

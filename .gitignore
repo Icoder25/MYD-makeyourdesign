@@ -3,18 +3,24 @@ node_modules/
 .venv/
 venv/
 __pycache__/
+*.py[cod]
 
 # Environment files
 .env
 .env.*
 !.env.example
-.env.example
 
 # Build and coverage output
 dist/
 build/
 coverage/
+htmlcov/
+.coverage
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+*.egg-info/
 
 # Local tooling
 .vscode/
@@ -27,6 +33,7 @@ Thumbs.db
 # Frontend build output
 frontend/dist/
 frontend/node_modules/
+npm-debug.log*
 
 # Incremental TypeScript build state — machine-local, not source
 *.tsbuildinfo

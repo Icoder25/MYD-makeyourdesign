@@ -3,12 +3,12 @@
     python scripts/build_pdfs.py
 
 Produces:
-    docs/prompt-documentation.pdf   — rendered from docs/prompts.md
-    docs/presentation.pdf           — the 4-slide deck
+    docs/KOHLER_AI_BathPlan_Prompt_Documentation.pdf — rendered from docs/prompts.md
+    docs/KOHLER AI BathPlan Pitch Deck.pdf           — the 4-slide deck
 
 The prompt PDF is rendered from the generated markdown, which is itself
 generated from the running prompt module. So the chain
-`backend/llm/prompts.py -> docs/prompts.md -> docs/prompt-documentation.pdf`
+`backend/llm/prompts.py -> docs/prompts.md -> docs/KOHLER_AI_BathPlan_Prompt_Documentation.pdf`
 has no hand-edited link in it.
 """
 
@@ -212,7 +212,7 @@ def build_prompt_pdf() -> Path:
     if not source.exists():
         raise SystemExit("docs/prompts.md is missing — run scripts/generate_prompt_docs.py first")
 
-    target = REPO_ROOT / "docs" / "prompt-documentation.pdf"
+    target = REPO_ROOT / "docs" / "KOHLER_AI_BathPlan_Prompt_Documentation.pdf"
     st = styles_for_doc()
 
     doc = BaseDocTemplate(
@@ -451,7 +451,7 @@ ARCHITECTURE = """ Your brief --> React frontend --> FastAPI
 
 
 def build_presentation() -> Path:
-    target = REPO_ROOT / "docs" / "presentation.pdf"
+    target = REPO_ROOT / "docs" / "KOHLER AI BathPlan Pitch Deck.pdf"
     st = slide_styles()
 
     doc = BaseDocTemplate(
@@ -504,7 +504,7 @@ def build_presentation() -> Path:
     flow.append(stat_row([
         ("33", "curated products"),
         ("~1,460", "configurations evaluated per plan"),
-        ("130", "automated tests"),
+        ("197", "automated tests"),
         ("0", "figures produced by an LLM"),
     ], st))
     flow.append(PageBreak())
